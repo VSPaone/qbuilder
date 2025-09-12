@@ -1,0 +1,463 @@
+{
+  "version": "1.0.0",
+  "about": {
+    "name": "Contextual Knowledge Graph for Q-Builder",
+    "description": "Curated nodes and rules that power suggestions, recommendations, and diagnostics for building quantum gates, oracles, algorithms, and end-to-end solutions in Q-Builder.",
+    "notes": [
+      "Fields: name, kind, map, domains, problems, tags, explain",
+      "kind ∈ {gate, oracle, algorithm, solution, io, helper}",
+      "map corresponds to a palette type (e.g., gate.h, algo.grover, oracle.marked). Items whose map is not supported will be suggested with lower priority.",
+      "domains: general, finance, pharma, logistics, cryptography (extend as needed)",
+      "problems: any, search, optimization, simulation, classification, factoring, estimation"
+    ]
+  },
+
+  "nodes": [
+    /* ======== I/O & Qubit scaffolding ======== */
+    {
+      "name": "Qubit (|0⟩ by default)",
+      "kind": "io",
+      "map": "qubit",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["init", "register", "declare"],
+      "explain": "Declares a logical qubit (index q[i]) initialized to |0⟩."
+    },
+    {
+      "name": "Measurement (computational basis)",
+      "kind": "io",
+      "map": "measure",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["readout", "classical", "collapse"],
+      "explain": "Measures a qubit in the Z (computational) basis; collapses superposition to classical outcome."
+    },
+
+    /* ======== Single-qubit gates ======== */
+    {
+      "name": "Pauli-X (NOT)",
+      "kind": "gate",
+      "map": "gate.x",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["flip", "bit-flip", "π rotation about X"],
+      "explain": "Flips |0⟩↔|1⟩. Equivalent to a π rotation around the X-axis."
+    },
+    {
+      "name": "Pauli-Y",
+      "kind": "gate",
+      "map": "gate.y",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["bit-phase-flip", "π rotation about Y"],
+      "explain": "Performs a π rotation around the Y-axis; introduces ±i phases."
+    },
+    {
+      "name": "Pauli-Z",
+      "kind": "gate",
+      "map": "gate.z",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["phase-flip", "π rotation about Z"],
+      "explain": "Applies a phase flip on |1⟩; π rotation around the Z-axis."
+    },
+    {
+      "name": "Hadamard (H)",
+      "kind": "gate",
+      "map": "gate.h",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["superposition", "Fourier over Z₂", "equal amplitudes"],
+      "explain": "Maps |0⟩→(|0⟩+|1⟩)/√2, |1⟩→(|0⟩−|1⟩)/√2; widely used to create superposition."
+    },
+    {
+      "name": "Phase S (√Z)",
+      "kind": "gate",
+      "map": "gate.s",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["phase", "Clifford"],
+      "explain": "Applies a +i phase to |1⟩ (Z^1/2)."
+    },
+    {
+      "name": "Phase T (√S = Z^{1/4})",
+      "kind": "gate",
+      "map": "gate.t",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["phase", "non-Clifford"],
+      "explain": "Applies a e^{iπ/4} phase to |1⟩; key non-Clifford gate for universality."
+    },
+    {
+      "name": "Rotation Rx(θ)",
+      "kind": "gate",
+      "map": "gate.rx",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["parametric", "rotation", "variational"],
+      "explain": "Rotates state around X-axis by θ; essential for variational circuits."
+    },
+    {
+      "name": "Rotation Ry(θ)",
+      "kind": "gate",
+      "map": "gate.ry",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["parametric", "rotation", "feature map"],
+      "explain": "Rotates state around Y-axis by θ; common in data-embedding and variational layers."
+    },
+    {
+      "name": "Rotation Rz(θ)",
+      "kind": "gate",
+      "map": "gate.rz",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["parametric", "rotation", "phase"],
+      "explain": "Rotates state around Z-axis by θ; ubiquitous for phase programming."
+    },
+
+    /* ======== Two-qubit gates ======== */
+    {
+      "name": "Controlled-NOT (CNOT / CX)",
+      "kind": "gate",
+      "map": "gate.cx",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["entangle", "conditional flip"],
+      "explain": "Flips target qubit when control is |1⟩; standard entangling gate."
+    },
+    {
+      "name": "Controlled-Y (CY)",
+      "kind": "gate",
+      "map": "gate.cy",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["entangle", "conditional Y"],
+      "explain": "Applies Y to target when control is |1⟩; introduces conditional phase/bit flip."
+    },
+    {
+      "name": "Controlled-Z (CZ)",
+      "kind": "gate",
+      "map": "gate.cz",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["entangle", "phase entanglement"],
+      "explain": "Applies Z to target when control is |1⟩; simple entangling phase gate."
+    },
+    {
+      "name": "SWAP",
+      "kind": "gate",
+      "map": "gate.swap",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["routing", "topology", "connectivity"],
+      "explain": "Swaps quantum states of two qubits; helpful for hardware connectivity."
+    },
+
+    /* ======== Three-qubit gates ======== */
+    {
+      "name": "Toffoli (CCNOT)",
+      "kind": "gate",
+      "map": "gate.ccx",
+      "domains": ["general", "cryptography"],
+      "problems": ["any"],
+      "tags": ["nonlinear logic", "reversible"],
+      "explain": "Flips target when both controls are |1⟩; used in arithmetic and oracles."
+    },
+    {
+      "name": "Fredkin (CSWAP)",
+      "kind": "gate",
+      "map": "gate.cswap",
+      "domains": ["general"],
+      "problems": ["any"],
+      "tags": ["conditional routing", "reversible"],
+      "explain": "Swaps two target qubits when control is |1⟩."
+    },
+
+    /* ======== Oracles ======== */
+    {
+      "name": "Marked-state Oracle",
+      "kind": "oracle",
+      "map": "oracle.marked",
+      "domains": ["general", "finance", "logistics", "cryptography"],
+      "problems": ["search", "classification"],
+      "tags": ["phase-flip", "Grover"],
+      "explain": "Phase-flips a chosen bitstring or set of bitstrings (solutions)."
+    },
+    {
+      "name": "Threshold Oracle",
+      "kind": "oracle",
+      "map": "oracle.threshold",
+      "domains": ["finance", "logistics"],
+      "problems": ["search", "optimization"],
+      "tags": ["mark if ≥ τ", "risk filtering"],
+      "explain": "Marks items whose score exceeds a threshold τ (e.g., risk, return)."
+    },
+    {
+      "name": "Truth-table Oracle",
+      "kind": "oracle",
+      "map": "oracle.truth",
+      "domains": ["general", "cryptography"],
+      "problems": ["classification", "search"],
+      "tags": ["boolean function", "phase kickback"],
+      "explain": "Implements a user-defined boolean function to mark/encode outputs."
+    },
+
+    /* ======== Algorithms (palette-known) ======== */
+    {
+      "name": "Grover Search",
+      "kind": "algorithm",
+      "map": "algo.grover",
+      "domains": ["general", "finance", "logistics", "cryptography"],
+      "problems": ["search"],
+      "tags": ["oracle", "diffusion", "quadratic speedup"],
+      "explain": "Amplifies amplitudes of marked states using an oracle and diffusion operator."
+    },
+    {
+      "name": "Deutsch–Jozsa",
+      "kind": "algorithm",
+      "map": "algo.dj",
+      "domains": ["general", "cryptography"],
+      "problems": ["classification"],
+      "tags": ["balanced vs constant", "oracle-based"],
+      "explain": "Determines if a boolean function is constant or balanced with one evaluation."
+    },
+    {
+      "name": "QAOA (Combinatorial Optimization)",
+      "kind": "algorithm",
+      "map": "algo.qaoa",
+      "domains": ["finance", "logistics"],
+      "problems": ["optimization"],
+      "tags": ["variational", "mixer", "cost Hamiltonian"],
+      "explain": "Alternates cost and mixer unitaries to approximate optimal bitstrings."
+    },
+
+    /* ======== Algorithms (extended, not all mapped in palette) ======== */
+    {
+      "name": "Bernstein–Vazirani",
+      "kind": "algorithm",
+      "map": "algo.bv",
+      "domains": ["general", "cryptography"],
+      "problems": ["classification"],
+      "tags": ["hidden string", "single-query"],
+      "explain": "Finds a hidden string encoded in a linear boolean function with one query."
+    },
+    {
+      "name": "Simon’s Algorithm",
+      "kind": "algorithm",
+      "map": "algo.simon",
+      "domains": ["general", "cryptography"],
+      "problems": ["classification"],
+      "tags": ["period finding", "2-to-1 functions"],
+      "explain": "Finds a secret XOR mask for 2-to-1 functions; exponential speedup over classical."
+    },
+    {
+      "name": "Quantum Phase Estimation",
+      "kind": "algorithm",
+      "map": "algo.qpe",
+      "domains": ["general", "pharma"],
+      "problems": ["estimation", "simulation"],
+      "tags": ["eigenphase", "controlled unitaries"],
+      "explain": "Estimates the eigenphase of a unitary; core subroutine in many algorithms."
+    },
+    {
+      "name": "Variational Quantum Eigensolver (VQE)",
+      "kind": "algorithm",
+      "map": "algo.vqe",
+      "domains": ["pharma"],
+      "problems": ["simulation", "optimization"],
+      "tags": ["ansatz", "energy minimization"],
+      "explain": "Finds low-energy eigenstates by variationally optimizing parametric circuits."
+    },
+    {
+      "name": "Quantum Amplitude Estimation (QAE)",
+      "kind": "algorithm",
+      "map": "algo.qae",
+      "domains": ["finance"],
+      "problems": ["estimation"],
+      "tags": ["Monte Carlo speedup", "phase estimation"],
+      "explain": "Estimates amplitudes/probabilities with quadratic speedup vs classical sampling."
+    },
+    {
+      "name": "Shor’s Algorithm",
+      "kind": "algorithm",
+      "map": "algo.shor",
+      "domains": ["cryptography"],
+      "problems": ["factoring"],
+      "tags": ["period finding", "QFT", "modular arithmetic"],
+      "explain": "Factors integers in polynomial time using period finding via QFT."
+    },
+    {
+      "name": "HHL Linear Solver",
+      "kind": "algorithm",
+      "map": "algo.hhl",
+      "domains": ["finance", "pharma", "logistics"],
+      "problems": ["simulation", "estimation"],
+      "tags": ["linear systems", "block-encoding"],
+      "explain": "Solves sparse linear systems under certain assumptions using phase estimation."
+    },
+
+    /* ======== End-to-end solution blueprints (palette-known) ======== */
+    {
+      "name": "Portfolio Marking (Screening)",
+      "kind": "solution",
+      "map": "sol.portfolio",
+      "domains": ["finance"],
+      "problems": ["search", "optimization"],
+      "tags": ["risk threshold", "oracle", "Grover/QAOA"],
+      "explain": "Marks candidate portfolios by risk/return thresholds and optionally optimizes."
+    },
+    {
+      "name": "Route Scoring (TSP/QUBO)",
+      "kind": "solution",
+      "map": "sol.route",
+      "domains": ["logistics"],
+      "problems": ["optimization"],
+      "tags": ["graph", "QUBO", "QAOA"],
+      "explain": "Encodes routing or assignment problems as QUBO for QAOA-style optimization."
+    },
+    {
+      "name": "Molecule Mapping (VQE/UCC-lite)",
+      "kind": "solution",
+      "map": "sol.molecule",
+      "domains": ["pharma"],
+      "problems": ["simulation", "estimation"],
+      "tags": ["chemistry", "Hamiltonian", "ansatz"],
+      "explain": "Maps molecular Hamiltonians to qubits and estimates ground-state energies via VQE."
+    },
+
+    /* ======== Helpers / building blocks (suggestible, neutral) ======== */
+    {
+      "name": "Superposition Layer (H on all qubits)",
+      "kind": "helper",
+      "map": "gate.h",
+      "domains": ["general"],
+      "problems": ["search", "classification"],
+      "tags": ["layer", "init", "feature map"],
+      "explain": "Apply H to all declared qubits to create uniform superposition over basis states."
+    },
+    {
+      "name": "Entangler Layer (CX pattern)",
+      "kind": "helper",
+      "map": "gate.cx",
+      "domains": ["general"],
+      "problems": ["optimization", "simulation"],
+      "tags": ["layer", "entanglement"],
+      "explain": "Chain or ladder of CXs to create entanglement across qubits."
+    },
+    {
+      "name": "Variational Layer (Ry–Rz + CX)",
+      "kind": "helper",
+      "map": "gate.ry",
+      "domains": ["general"],
+      "problems": ["optimization", "simulation"],
+      "tags": ["ansatz", "hardware-efficient"],
+      "explain": "Alternating Ry/Rz per qubit with CX entanglers forms a common variational ansatz."
+    }
+  ],
+
+  "rules": [
+    /* ======== Cross-cutting quality & lint hints ======== */
+    {
+      "if": { "domain": "general", "problem": "search" },
+      "then": {
+        "requireOneOf": ["oracle.*"],
+        "recommend": ["algo.grover", "gate.h", "gate.cx"]
+      },
+      "explain": "Grover-style search requires an oracle; start with H layer, use diffusion and entanglement."
+    },
+    {
+      "if": { "domain": "general", "problem": "classification" },
+      "then": {
+        "recommend": ["algo.dj", "oracle.truth", "gate.h", "gate.cz"]
+      },
+      "explain": "For boolean function classification, consider DJ or a truth-table oracle; H layer and CZ help."
+    },
+    {
+      "if": { "domain": "general", "problem": "optimization" },
+      "then": {
+        "recommend": ["algo.qaoa", "gate.ry", "gate.rz", "gate.cx"]
+      },
+      "explain": "QAOA uses parametrized single-qubit rotations with entangling CX mixers."
+    },
+    {
+      "if": { "domain": "general", "problem": "simulation" },
+      "then": {
+        "recommend": ["algo.vqe", "algo.qpe", "gate.rz", "gate.rx", "gate.cx"]
+      },
+      "explain": "Hamiltonian simulation and energy estimation typically use VQE/QPE with Rz/Rx and CX entanglers."
+    },
+
+    /* ======== Domain-specialized guides ======== */
+    {
+      "if": { "domain": "finance", "problem": "search" },
+      "then": {
+        "requireOneOf": ["oracle.marked", "oracle.threshold"],
+        "recommend": ["algo.grover", "gate.h", "gate.cx"]
+      },
+      "explain": "Financial screening: mark assets/portfolios via threshold/marked oracles; amplify via Grover."
+    },
+    {
+      "if": { "domain": "finance", "problem": "optimization" },
+      "then": {
+        "recommend": ["algo.qaoa", "sol.portfolio", "gate.ry", "gate.rz", "gate.cx"]
+      },
+      "explain": "Portfolio optimization: use QAOA with Ry/Rz layers and CX entanglement; consider the portfolio solution scaffold."
+    },
+    {
+      "if": { "domain": "finance", "problem": "estimation" },
+      "then": {
+        "recommend": ["algo.qae", "gate.h", "gate.cz"]
+      },
+      "explain": "Risk/return estimation can leverage amplitude estimation for speedups."
+    },
+
+    {
+      "if": { "domain": "logistics", "problem": "optimization" },
+      "then": {
+        "recommend": ["sol.route", "algo.qaoa", "gate.swap", "gate.cx", "gate.ry"]
+      },
+      "explain": "Routing (TSP/QUBO) benefits from QAOA and SWAP for hardware connectivity."
+    },
+
+    {
+      "if": { "domain": "pharma", "problem": "simulation" },
+      "then": {
+        "recommend": ["sol.molecule", "algo.vqe", "gate.rz", "gate.rx", "gate.cx"]
+      },
+      "explain": "Molecular energy estimation: VQE with chemistry-inspired ansatz; use Rz/Rx and entanglers."
+    },
+
+    {
+      "if": { "domain": "cryptography", "problem": "classification" },
+      "then": {
+        "recommend": ["algo.dj", "algo.bv", "algo.simon", "oracle.truth", "gate.h", "gate.cz"]
+      },
+      "explain": "Cryptographic oracles: DJ/BV/Simon families test structure; truth-table oracles are natural here."
+    },
+    {
+      "if": { "domain": "cryptography", "problem": "factoring" },
+      "then": {
+        "recommend": ["algo.shor", "gate.h", "gate.cx", "gate.swap"]
+      },
+      "explain": "Factoring calls for Shor (period finding); heavy use of H/CX and routing via SWAP."
+    },
+
+    /* ======== Sanity & best practices (used as warnings by lint) ======== */
+    {
+      "if": { "domain": "general", "problem": "search" },
+      "then": { "requireOneOf": ["oracle.*"] },
+      "explain": "Warning: Search workflow without an oracle usually cannot amplify a marked solution."
+    },
+    {
+      "if": { "domain": "general", "problem": "optimization" },
+      "then": { "recommend": ["gate.cx"] },
+      "explain": "Suggestion: Add at least one entangling layer (e.g., CX) to enable non-separable correlations."
+    },
+    {
+      "if": { "domain": "general", "problem": "classification" },
+      "then": { "recommend": ["gate.h"] },
+      "explain": "Suggestion: Use H layer to create superposition over inputs for parallel evaluation."
+    }
+  ]
+}

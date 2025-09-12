@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>Q-Builder V2 — Guided Quantum Solution Builder</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Remix Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css"/>
+
+  <!-- App styles (polish + containers for preview/diagnostics/histogram) -->
+  <style>
+    :root{
+      --panel:#ffffff; --panel2:#f8fafc; --stroke:#e5e7eb; --accent:#4f46e5;
+      --accent-2:#22c55e; --warn:#f59e0b; --err:#ef4444; --ink:#111827;
+      --softshadow: 0 6px 18px rgba(0,0,0,.08);
+    }
+    html,body{height:100%}
+    body{background:#f3f4f6;color:var(--ink);-webkit-font-smoothing:antialiased}
+    .shadow-soft{box-shadow:0 4px 14px rgba(0,0,0,.06)}
+    .orange-dock{width:56px;background:#111827;border-right:1px solid #0f172a}
+    .orange-dock button{width:100%;height:48px;color:#cbd5e1;transition:.15s ease}
+    .orange-dock button:hover{background:#1f2937;color:#fff}
+    .node-canvas{position:relative;background:#0b1020}
+    .grid-bg{
+      background-image: linear-gradient(to right, rgba(255,255,255,.06) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(255,255,255,.06) 1px, transparent 1px);
+      background-size:24px 24px;
+    }
+    .minimap{background:#0f172a;border:1px solid var(--stroke);border-radius:10px}
+    .pane-title{font-weight:700}
+    .badge{border:1px solid var(--stroke);border-radius:9999px;padding:.20rem .55rem;font-size:.75rem;background:#fff}
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:60}
+    .modal.show{display:flex}
+    .modal-card{width:min(1100px,94vw);max-height:88vh;overflow:auto;background:#fff;border-radius:12px;border:1px solid var(--stroke);box-shadow:var(--softshadow)}
+    .codebox{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+    .pill{border:1px solid var(--stroke);border-radius:9999px;padding:.15rem .55rem;font-size:.72rem;background:#fff}
+    .warn{outline:2px solid #f59e0b}.err{outline:2px solid #ef4444}
+
+    /* Canvas toolbar buttons */
+    #btnAutoLayout,#btnGroup,#btnUngroup,#btnSaveToLib,#btnClearCanvas{
+      border:1px solid var(--stroke);background:#fff;border-radius:12px;padding:.65rem .9rem;line-height:1;
+      box-shadow:var(--softshadow);transition:transform .12s ease,box-shadow .12s ease,background .12s ease
+    }
+    #btnAutoLayout:hover,#btnGroup:hover,#btnUngroup:hover,#btnSaveToLib:hover{
+      transform:translateY(-1px);box-shadow:0 8px 20px rgba(0,0,0,.10);background:#f9fafb
+    }
+    #btnClearCanvas{border-color:#fecaca;color:#b91c1c;background:#fff5f5}
+    #btnClearCanvas:hover{background:#ffe9e9;transform:translateY(-1px)}
+
+    /* Histogram canvas */
+    #simHist{display:block;width:100%!important;height:auto!important;background:#fff;border:1px solid var(--stroke);border-radius:8px;
+      image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges}
+
+    /* Scrollbars */
+    *{scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
+    *::-webkit-scrollbar{width:10px;height:10px}
+    *::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#d1d5db,#cbd5e1);border:2px solid transparent;background-clip:content-box;border-radius:8px}
+
+    /* Focus rings */
+    :where(button,[tabindex],input,select,textarea):focus{outline:3px solid rgba(79,70,229,.35);outline-offset:2px}
+
+    /* Export menu */
+    #exportMenu{border:1px solid var(--stroke);border-radius:10px;box-shadow:var(--softshadow)}
+    #exportMenu button{padding:.6rem .9rem} #exportMenu button:hover{background:#f3f4f6}
+  </style>
+</head>
+
+<body class="text-gray-800">
+  <!-- Top bar -->
+  <header class="bg-indigo-600 text-white">
+    <div class="max-w-[1700px] mx-auto px-4 py-3 flex items-center gap-3">
+      <div class="text-xl font-bold">Q-Builder V2</div>
+      <span class="badge bg-indigo-500/30 border-indigo-300 text-white flex items-center gap-1">
+        <i class="ri-node-tree"></i> Guided Quantum Solution Builder
+      </span>
+      <div class="ml-auto flex items-center gap-2">
+        <button id="btnNew" class="px-3 py-1.5 rounded bg-white/10 hover:bg-white/20"><i class="ri-add-line mr-1"></i>New</button>
+        <button id="btnOpen" class="px-3 py-1.5 rounded bg-white/10 hover:bg-white/20"><i class="ri-folder-open-line mr-1"></i>Open</button>
+        <button id="btnSave" class="px-3 py-1.5 rounded bg-white/10 hover:bg-white/20"><i class="ri-save-3-line mr-1"></i>Save</button>
+
+        <!-- Export -->
+        <div class="relative">
+          <button id="btnExportMenu" class="px-3 py-1.5 rounded bg-white/10 hover:bg-white/20">
+            <i class="ri-upload-2-line mr-1"></i>Export <i class="ri-arrow-down-s-line ml-1"></i>
+          </button>
+          <div id="exportMenu" class="hidden absolute right-0 mt-2 w-56 bg-white text-gray-800 rounded shadow-lg overflow-hidden z-50">
+            <button id="btnExportJSON" class="w-full text-left px-4 py-2 hover:bg-gray-100"><i class="ri-code-line mr-2"></i>Circuit JSON</button>
+            <button id="btnExportQASM" class="w-full text-left px-4 py-2 hover:bg-gray-100"><i class="ri-brackets-line mr-2"></i>OpenQASM</button>
+            <button id="btnExportQiskit" class="w-full text-left px-4 py-2 hover:bg-gray-100"><i class="ri-terminal-box-line mr-2"></i>Qiskit Code</button>
+          </div>
+        </div>
+
+        <button id="btnPreview" class="px-3 py-1.5 rounded bg-white/10 hover:bg-white/20"><i class="ri-play-circle-line mr-1"></i>Preview</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Breadcrumb -->
+  <div class="bg-white border-b border-[var(--stroke)]">
+    <div id="breadcrumb" class="max-w-[1700px] mx-auto px-4 py-2 text-sm flex items-center gap-2">
+      <span class="font-semibold">Main Circuit</span>
+    </div>
+  </div>
+
+  <!-- Main layout -->
+  <div class="max-w-[1700px] mx-auto h-[calc(100vh-104px)] flex">
+    <!-- Left dock -->
+    <aside class="orange-dock flex flex-col items-stretch py-2">
+      <button id="dockSelect" title="Select"><i class="ri-cursor-line text-xl"></i></button>
+      <button id="dockPan" title="Pan"><i class="ri-hand-line text-xl"></i></button>
+      <button id="dockWire" title="Connect"><i class="ri-flow-chart text-xl"></i></button>
+      <button id="dockDelete" title="Delete"><i class="ri-delete-bin-6-line text-xl"></i></button>
+      <div class="mt-auto"></div>
+      <button id="dockZoomIn" title="Zoom In"><i class="ri-zoom-in-line text-xl"></i></button>
+      <button id="dockZoomOut" title="Zoom Out"><i class="ri-zoom-out-line text-xl"></i></button>
+      <button id="dockReset" title="Reset View"><i class="ri-focus-2-line text-xl"></i></button>
+    </aside>
+
+    <!-- Left panel -->
+    <aside class="w-[320px] bg-[var(--panel)] border-r border-[var(--stroke)] p-3 overflow-auto">
+      <h3 class="pane-title mb-2">Define Problem</h3>
+      <div class="space-y-2">
+        <label class="text-sm">Domain
+          <select id="inpDomain" class="mt-1 w-full border rounded px-2 py-1.5">
+            <option value="finance">Finance</option>
+            <option value="pharma">Pharma</option>
+            <option value="logistics">Logistics</option>
+            <option value="cryptography">Cryptography</option>
+          </select>
+        </label>
+        <label class="text-sm">Problem Type
+          <select id="inpProblem" class="mt-1 w-full border rounded px-2 py-1.5">
+            <option value="search">Search</option>
+            <option value="optimization">Optimization</option>
+            <option value="simulation">Simulation</option>
+            <option value="classification">Classification</option>
+          </select>
+        </label>
+        <label class="text-sm">Title
+          <input id="inpTitle" type="text" placeholder="e.g., Vaccine selection (60+, diabetes)" class="mt-1 w-full border rounded px-2 py-1.5"/>
+        </label>
+        <button id="btnSuggest" class="w-full bg-[var(--accent)] text-white rounded px-3 py-2"><i class="ri-sparkling-2-line mr-1"></i>Suggest</button>
+      </div>
+
+      <div class="mt-4">
+        <h3 class="pane-title mb-2">Suggestions</h3>
+        <div id="suggestions" class="space-y-2"><!-- chips injected by intel.js --></div>
+      </div>
+
+      <div class="mt-4">
+        <h3 class="pane-title mb-2">Palette</h3>
+        <input id="paletteSearch" type="search" placeholder="Search widgets…" class="w-full border rounded px-2 py-1.5 mb-2"/>
+
+        <!-- Qubits & IO -->
+        <details open class="bg-[var(--panel2)] rounded border border-[var(--stroke)]">
+          <summary class="px-3 py-2 cursor-pointer font-semibold">Qubits & I/O</summary>
+          <div id="plQubits" class="p-3 grid grid-cols-2 gap-2">
+            <div data-type="qubit" draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center">Qubit</div>
+            <div data-type="measure" draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center">Measure</div>
+          </div>
+        </details>
+
+        <!-- Gates -->
+        <details open class="bg-[var(--panel2)] rounded border border-[var(--stroke)] mt-3">
+          <summary class="px-3 py-2 cursor-pointer font-semibold">Gates</summary>
+          <div id="plGates" class="p-3 grid grid-cols-3 gap-2">
+            <div data-type="gate.x"   draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center">X</div>
+            <div data-type="gate.y"   draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center">Y</div>
+            <div data-type="gate.z"   draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center">Z</div>
+            <div data-type="gate.h"   draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center">H</div>
+            <div data-type="gate.rx"  draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center">Rx(θ)</div>
+            <div data-type="gate.ry"  draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center">Ry(θ)</div>
+            <div data-type="gate.rz"  draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center">Rz(θ)</div>
+            <div data-type="gate.t"   draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center">T</div>
+            <div data-type="gate.s"   draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center">S</div>
+            <div data-type="gate.cx"  draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center">CX</div>
+            <div data-type="gate.cy"  draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center">CY</div>
+            <div data-type="gate.cz"  draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center">CZ</div>
+            <div data-type="gate.swap" draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center">SWAP</div>
+            <div data-type="gate.ccx"   draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center col-span-1">CCNOT</div>
+            <div data-type="gate.cswap" draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft text-center col-span-2">CSWAP</div>
+          </div>
+        </details>
+
+        <!-- Oracles -->
+        <details class="bg-[var(--panel2)] rounded border border-[var(--stroke)] mt-3">
+          <summary class="px-3 py-2 cursor-pointer font-semibold">Oracles</summary>
+          <div id="plOracles" class="p-3 grid grid-cols-1 gap-2">
+            <div data-type="oracle.marked"    draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft">Marked State</div>
+            <div data-type="oracle.threshold" draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft">Threshold</div>
+            <div data-type="oracle.truth"     draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft">Truth Table</div>
+          </div>
+        </details>
+
+        <!-- Algorithms -->
+        <details class="bg-[var(--panel2)] rounded border border-[var(--stroke)] mt-3">
+          <summary class="px-3 py-2 cursor-pointer font-semibold">Algorithms</summary>
+          <div id="plAlgorithms" class="p-3 grid grid-cols-1 gap-2">
+            <div data-type="algo.grover" draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft">Grover</div>
+            <div data-type="algo.dj"     draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft">Deutsch–Jozsa</div>
+            <div data-type="algo.qaoa"   draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft">QAOA</div>
+          </div>
+        </details>
+
+        <!-- Solutions -->
+        <details class="bg-[var(--panel2)] rounded border border-[var(--stroke)] mt-3">
+          <summary class="px-3 py-2 cursor-pointer font-semibold">Solutions</summary>
+          <div id="plSolutions" class="p-3 grid grid-cols-1 gap-2">
+            <div data-type="sol.portfolio" draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft">Portfolio Marking</div>
+            <div data-type="sol.route"     draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft">Route Scoring</div>
+            <div data-type="sol.molecule"  draggable="true" class="cursor-grab px-2 py-1.5 rounded bg-white border shadow-soft">Molecule Mapping</div>
+          </div>
+        </details>
+
+        <!-- Library -->
+        <details class="bg-[var(--panel2)] rounded border border-[var(--stroke)] mt-3">
+          <summary class="px-3 py-2 cursor-pointer font-semibold">My Library</summary>
+          <div id="plLibrary" class="p-3 grid grid-cols-1 gap-2"><!-- populated from localStorage --></div>
+        </details>
+      </div>
+    </aside>
+
+    <!-- Splitter -->
+    <div class="w-1 bg-transparent"></div>
+
+    <!-- Center: Canvas + status -->
+    <main class="flex-1 flex flex-col">
+      <!-- Toolbar -->
+      <div class="bg-[var(--panel)] border-b border-[var(--stroke)] p-2 flex items-center gap-2">
+        <button id="btnAutoLayout" class="text-sm"><i class="ri-magic-line mr-1"></i>Auto Layout</button>
+        <button id="btnGroup" class="text-sm"><i class="ri-object-group-line mr-1"></i>Group</button>
+        <button id="btnUngroup" class="text-sm"><i class="ri-object-ungroup-line mr-1"></i>Ungroup</button>
+        <button id="btnSaveToLib" class="text-sm"><i class="ri-bookmark-3-line mr-1"></i>Save to Library</button>
+        <div class="ml-auto"></div>
+        <button id="btnClearCanvas" class="text-sm"><i class="ri-eraser-line mr-1"></i>Clear</button>
+      </div>
+
+      <!-- Canvas -->
+      <div id="workspace" class="flex-1 node-canvas grid-bg relative overflow-hidden">
+        <div id="canvasInner" class="absolute inset-0"></div>
+        <div id="canvasOverlay" class="absolute inset-0 pointer-events-none"></div>
+      </div>
+
+      <!-- Status bar -->
+      <div class="bg-[var(--panel)] border-t border-[var(--stroke)] px-3 py-2 text-sm flex items-center gap-4">
+        <span id="statusLeft" class="text-gray-600">Ready.</span>
+        <span class="ml-auto pill">Zoom: <b id="zoomPct">100%</b></span>
+        <span class="pill">Nodes: <b id="nodeCount">0</b></span>
+        <span class="pill">Wires: <b id="wireCount">0</b></span>
+        <span class="pill">Lint: <b id="lintState">ok</b></span>
+        <span class="pill">Depth: <b id="depthHint">0</b></span>
+        <span class="pill">2Q: <b id="twoQCount">0</b></span>
+      </div>
+    </main>
+
+    <!-- Right panel: Inspector + Diagnostics -->
+    <aside class="w-[360px] bg-[var(--panel)] border-l border-[var(--stroke)] p-3 overflow-auto">
+      <h3 class="pane-title mb-2">Inspector</h3>
+      <div id="inspector" class="min-h-[140px] text-sm text-gray-700">
+        <p class="text-gray-500">Select a node to edit its properties.</p>
+      </div>
+
+      <div class="mt-5">
+        <h3 class="pane-title mb-2">Diagnostics</h3>
+        <div class="flex items-center gap-3 mb-2">
+          <label class="flex items-center gap-1 text-sm"><input id="fltErr" type="checkbox" checked/> Errors</label>
+          <label class="flex items-center gap-1 text-sm"><input id="fltWarn" type="checkbox" checked/> Warnings</label>
+          <label class="flex items-center gap-1 text-sm"><input id="fltInfo" type="checkbox" checked/> Info</label>
+        </div>
+        <div id="diag" class="text-sm space-y-1">OK</div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Context menu -->
+  <div id="ctxMenu" class="hidden fixed z-50 w-48 bg-white">
+    <button id="ctxDuplicate">Duplicate</button>
+    <button id="ctxGroup">Group</button>
+    <button id="ctxSaveToLib">Save to Library</button>
+    <button id="ctxDelete" class="text-red-700">Delete</button>
+  </div>
+
+  <!-- Preview modal -->
+  <div id="modalPreview" class="modal">
+    <div class="modal-card p-4 space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="text-lg font-semibold">Preview</div>
+        <button class="px-3 py-1 rounded border" onclick="document.getElementById('modalPreview').classList.remove('show')">Close</button>
+      </div>
+
+      <!-- Quick controls for (4)(5)(6)(8) we’ll wire up next -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <label class="text-sm">Shots
+          <input id="shotsInput" type="number" min="0" step="1" value="1024" class="mt-1 w-full border rounded px-2 py-1.5"/>
+        </label>
+        <label class="text-sm">Noise
+          <select id="noiseSelect" class="mt-1 w-full border rounded px-2 py-1.5">
+            <option value="">None</option>
+            <option value="depolarizing">Depolarizing (p=0.02)</option>
+            <option value="amp-damp">Amplitude damp (γ=0.05)</option>
+            <option value="phase-damp">Phase damp (λ=0.05)</option>
+          </select>
+        </label>
+        <label class="text-sm">Mirror repeats
+          <input id="mirrorInput" type="number" min="0" max="3" step="1" value="1" class="mt-1 w-full border rounded px-2 py-1.5"/>
+        </label>
+        <label class="text-sm">Seed
+          <input id="seedInput" type="number" step="1" placeholder="(optional)" class="mt-1 w-full border rounded px-2 py-1.5"/>
+        </label>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="border rounded p-3">
+          <div class="text-sm text-gray-600 mb-2">Summary</div>
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div class="pill">Qubits: <b id="simQubits">0</b></div>
+            <div class="pill">Ops: <b id="simOps">0</b></div>
+            <div class="pill">Entangled: <b id="simEnt">false</b></div>
+            <div class="pill">Post-select kept: <b id="simKeepPct">—</b></div>
+          </div>
+
+          <div class="mt-3">
+            <canvas id="simHist" height="220"></canvas>
+          </div>
+          <div class="mt-3 flex items-center justify-between">
+            <button id="btnRerun" class="px-3 py-1.5 rounded bg-[var(--accent)] text-white"><i class="ri-restart-line mr-1"></i>Run</button>
+            <span class="text-sm text-gray-500">Top outcomes shown; full state below.</span>
+          </div>
+        </div>
+
+        <div class="border rounded p-3 overflow-auto">
+          <div class="text-sm text-gray-600 mb-2">Statevector (amps)</div>
+          <table id="simStateTable" class="w-full text-xs codebox"></table>
+
+          <!-- What bricks ran (2) transparency) -->
+          <div class="text-sm text-gray-600 mt-4 mb-2">Bricks (compiled plan)</div>
+          <pre id="simBricks" class="codebox text-[12px] bg-[var(--panel2)] border border-[var(--stroke)] rounded p-2 overflow-auto max-h-48">[]</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export modals -->
+  <div id="modalJSON" class="modal">
+    <div class="modal-card p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="font-semibold">Export: Circuit JSON</div>
+        <button class="px-3 py-1 rounded border" onclick="document.getElementById('modalJSON').classList.remove('show')">Close</button>
+      </div>
+      <textarea id="outJSON" rows="16" class="w-full border rounded p-2 codebox"></textarea>
+      <button id="btnDownloadJSON" class="px-3 py-1.5 rounded bg-[var(--accent)] text-white">Download</button>
+    </div>
+  </div>
+
+  <div id="modalQASM" class="modal">
+    <div class="modal-card p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="font-semibold">Export: OpenQASM</div>
+        <button class="px-3 py-1 rounded border" onclick="document.getElementById('modalQASM').classList.remove('show')">Close</button>
+      </div>
+      <textarea id="outQASM" rows="16" class="w-full border rounded p-2 codebox"></textarea>
+      <button id="btnDownloadQASM" class="px-3 py-1.5 rounded bg-[var(--accent)] text-white">Download</button>
+    </div>
+  </div>
+
+  <div id="modalQiskit" class="modal">
+    <div class="modal-card p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="font-semibold">Export: Qiskit</div>
+        <button class="px-3 py-1 rounded border" onclick="document.getElementById('modalQiskit').classList.remove('show')">Close</button>
+      </div>
+      <textarea id="outQiskit" rows="16" class="w-full border rounded p-2 codebox"></textarea>
+      <button id="btnDownloadQiskit" class="px-3 py-1.5 rounded bg-[var(--accent)] text-white">Download</button>
+    </div>
+  </div>
+
+  <!-- Hidden file input -->
+  <input id="fileOpen" type="file" class="hidden"/>
+
+  <!-- App (builder.js imports simulator.js + intel.js as ES modules) -->
+  <script type="module" src="./builder.js"></script>
+</body>
+</html>
