@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Grover's Search — Candy Box Analogy</title>
+  <style>
+    body {font-family: Arial, sans-serif; background: #fef9f4; margin: 0; padding: 20px;}
+    h1 {text-align: center; color: #e65100;}
+    .note {text-align: center; margin-bottom: 20px; font-size: 16px;}
+    .boxes {display: flex; justify-content: center; gap: 15px; margin: 20px 0;}
+    .box {width: 60px; height: 60px; background: #ffe0b2; border: 2px solid #ef6c00; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; cursor: pointer;}
+    .box.marked {background: #ffd54f; border: 3px solid #f57f17;}
+    .box.highlight {background: #81c784; border: 3px solid #2e7d32; color: white;}
+    .steps {max-width: 600px; margin: auto; background: #fff3e0; padding: 15px; border-radius: 8px; border: 1px solid #ef6c00;}
+    .step {margin: 10px 0;}
+    button {background: #ef6c00; color: white; border: none; padding: 10px 16px; border-radius: 6px; font-size: 16px; cursor: pointer; margin: 8px;}
+    button:disabled {opacity: 0.5; cursor: not-allowed;}
+  </style>
+</head>
+<body>
+  <h1>Grover's Search — Candy Box Game 🍬</h1>
+  <div class="note">Imagine you have candy boxes. One box has the golden candy 🍭. Grover’s search helps you find it faster!</div>
+
+  <div class="boxes" id="boxes"></div>
+
+  <div class="steps" id="steps">
+    <div class="step"><b>Step 0:</b> All boxes look the same. You don’t know where the golden candy is.</div>
+  </div>
+
+  <div style="text-align:center">
+    <button id="btnOracle">🔍 Oracle (peek & mark the candy box)</button>
+    <button id="btnDiff">✨ Diffusion (make golden box glow brighter)</button>
+    <button id="btnReset">🔄 Reset</button>
+  </div>
+
+<script>
+(function(){
+  const boxesEl = document.getElementById('boxes');
+  const stepsEl = document.getElementById('steps');
+  const btnOracle = document.getElementById('btnOracle');
+  const btnDiff = document.getElementById('btnDiff');
+  const btnReset = document.getElementById('btnReset');
+
+  let N = 6; // number of boxes
+  let target = Math.floor(Math.random()*N);
+  let marked = false;
+
+  function renderBoxes(){
+    boxesEl.innerHTML = '';
+    for(let i=0;i<N;i++){
+      const b = document.createElement('div');
+      b.className = 'box';
+      b.textContent = i+1;
+      if(marked && i===target) b.classList.add('marked');
+      if(marked && i===target && btnDiff.disabled) b.classList.add('highlight');
+      boxesEl.appendChild(b);
+    }
+  }
+
+  function reset(){
+    target = Math.floor(Math.random()*N);
+    marked=false;
+    btnOracle.disabled=false;
+    btnDiff.disabled=true;
+    stepsEl.innerHTML = '<div class="step"><b>Step 0:</b> All boxes look the same. You don’t know where the golden candy is.</div>';
+    renderBoxes();
+  }
+
+  function oracle(){
+    marked=true;
+    btnOracle.disabled=true;
+    btnDiff.disabled=false;
+    stepsEl.innerHTML += '<div class="step"><b>Step 1:</b> The oracle peeked inside and <b>marked</b> the golden candy box (but didn’t open it!).</div>';
+    renderBoxes();
+  }
+
+  function diffusion(){
+    btnDiff.disabled=true;
+    stepsEl.innerHTML += '<div class="step"><b>Step 2:</b> The magic spotlight (diffusion) makes the golden box <b>shine brighter</b>, so it’s easier to find!</div>';
+    renderBoxes();
+  }
+
+  btnOracle.addEventListener('click', oracle);
+  btnDiff.addEventListener('click', diffusion);
+  btnReset.addEventListener('click', reset);
+
+  reset();
+})();
+</script>
+  
+<!-- Kid Mode (Treasure Hunt) Add‑on: appended without touching main logic -->
+<style>
+  .kid-card{background:linear-gradient(180deg,#0d1a26 0%, #0a1420 100%);border:1px solid #1e293b;border-radius:14px;padding:14px;margin-bottom:12px}
+  .kid-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:12px}
+  .chest{background:#0b1522;border:1px solid #12314a;border-radius:12px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:96px;position:relative}
+  .chest .emoji{font-size:24px}
+  .chest .name{font-size:12px;color:#9fb3c8}
+  .chest .stars{font-size:14px;letter-spacing:1px}
+  .chest.target{outline:2px dashed #f59e0b}
+  .kid-narration{font-size:15px;line-height:1.55;color:#f1f7ff}
+  .kid-note{font-size:13px;color:#b7c7db}
+</style>
+<script>
+(function(){
+  // Wait for the main app to build its DOM
+  function qs(s,root=document){return root.querySelector(s);} ; function qsa(s,root=document){return Array.from(root.querySelectorAll(s));}
+  function buildKidUI(){
+    const layout = qsa('.grid.layout > section');
+    const controls = layout[0];
+    const vizWrap = layout[1];
+    if(!controls || !vizWrap) return false;
+
+    // 1) Add toggle to controls (first row)
+    const firstRow = qs('.controls .row', controls) || controls;
+    if(!qs('#kidModeToggle', controls)){
+      const label = document.createElement('label');
+      label.style.display='flex'; label.style.alignItems='center'; label.style.gap='8px'; label.style.marginLeft='auto';
+      label.innerHTML = '<input type="checkbox" id="kidModeToggle"/> Treasure Hunt (Kid Mode)';
+      firstRow.appendChild(label);
+    }
+
+    // 2) Add kid section before grown-up viz
+    if(!qs('#kidSection', vizWrap)){
+      const kid = document.createElement('div'); kid.className='kid-card'; kid.id='kidSection'; kid.style.display='none';
+      kid.innerHTML = `
+        <h3 style="margin:6px 0 10px 0;font-size:18px">🧰 Treasure Hunt — Story Version</h3>
+        <div class="kid-narration" id="kidNarration">Step 0: We have N closed treasure boxes. One box hides a candy 🍬. We sprinkle <b>fairy dust</b> so every box is equally likely to have the candy.</div>
+        <div class="kid-grid" id="kidGrid" style="margin-top:12px"></div>
+        <div class="kid-note" style="margin-top:8px">Buttons mean: <b>Prepare</b> = sprinkle dust (all boxes equal). <b>Oracle</b> = magic friend secretly flips a sticker on the candy box. <b>Diffusion</b> = mirror rule that boosts the flipped box while others step back a little. Repeat → the candy box stands out!</div>
+      `;
+      vizWrap.prepend(kid);
+    }
+
+    return true;
+  }
+
+  function readState(){
+    // Infer N and probabilities from existing DOM
+    const pBars = qsa('.pbar');
+    const probs = pBars.map(p=>{
+      const t = qs('.value', p); return t? parseFloat(t.textContent)||0 : 0;
+    });
+    const N = probs.length||0;
+    const targetSel = qs('#target');
+    const target = targetSel? parseInt(targetSel.value||'0',10) : 0;
+    return {N, probs, target};
+  }
+
+  function drawKids(){
+    const kidGrid = qs('#kidGrid'); if(!kidGrid) return;
+    const {N, probs, target} = readState();
+    const maxP = Math.max(...probs, 1/(N||1));
+    kidGrid.innerHTML='';
+    for(let i=0;i<N;i++){
+      const p = probs[i]||0;
+      const stars = Math.max(1, Math.round((p/maxP)*5));
+      const box=document.createElement('div'); box.className='chest'; if(i===target) box.classList.add('target');
+      const emoji=document.createElement('div'); emoji.className='emoji'; emoji.textContent = i===target? '🎯' : '📦';
+      const name=document.createElement('div'); name.className='name'; name.textContent = `Box ${i}`;
+      const star=document.createElement('div'); star.className='stars'; star.textContent = '⭐'.repeat(stars);
+      const prob=document.createElement('div'); prob.style.fontSize='11px'; prob.style.color='#9fb3c8'; prob.textContent = `${(p*100).toFixed(1)}% chance`;
+      box.appendChild(emoji); box.appendChild(name); box.appendChild(star); box.appendChild(prob);
+      kidGrid.appendChild(box);
+    }
+  }
+
+  function syncNarration(){
+    const stepLbl = qs('#stepLbl');
+    const kidNarr = qs('#kidNarration');
+    if(!kidNarr||!stepLbl) return;
+    const txt = stepLbl.textContent||'';
+    if(txt.includes('prepared')){
+      kidNarr.innerHTML = `Step 1: <b>Sprinkle fairy dust ✨</b>. Every box is equally likely. Now our magic friend will secretly mark the candy box.`;
+    } else if(txt.includes('Oracle')){
+      kidNarr.innerHTML = `Step 2: <b>Magic friend 🧙‍♂️</b> secretly flips the sticker on the candy box. Nothing visible changes yet, but the sticker is special!`;
+    } else if(txt.includes('Diffusion')){
+      kidNarr.innerHTML = `Step 3: <b>Mirror rule 🪞</b> makes the flipped box grow more ⭐ while others step back a little. Repeat a few times → the candy box becomes clearly the best choice!`;
+    } else {
+      const {N}=readState();
+      kidNarr.textContent = `Step 0: We have ${N} closed treasure boxes. One box hides a candy 🍬. Click "Prepare" to sprinkle fairy dust so all boxes are equal.`;
+    }
+  }
+
+  function hook(){
+    if(!buildKidUI()) return;
+    const toggle = qs('#kidModeToggle');
+    const kid = qs('#kidSection');
+    const grown = qs('#grownupSection') || qs('.viz'); // fallback
+    if(!toggle||!kid) return;
+
+    function refresh(){ if(toggle.checked){ drawKids(); syncNarration(); } }
+
+    toggle.addEventListener('change', ()=>{
+      kid.style.display = toggle.checked? 'block':'none';
+      if(grown) grown.style.display = toggle.checked? 'none':'grid';
+      refresh();
+    });
+
+    // Re-draw kid view whenever buttons are clicked
+    ['btnInit','btnOracle','btnDiff','btnIter','btnAuto','btnReset','target','qubits'].forEach(id=>{
+      const el = document.getElementById(id); if(!el) return;
+      el.addEventListener('click', ()=>{ setTimeout(refresh, 30); });
+      el.addEventListener('change', ()=>{ setTimeout(refresh, 30); });
+    });
+
+    // Also observe probability DOM changes
+    const obs = new MutationObserver(()=>{ refresh(); });
+    const pBars = qs('.prob'); if(pBars) obs.observe(pBars, {subtree:true, childList:true, characterData:true});
+
+    // Start in grown-up view but keep kid UI ready
+    refresh();
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', hook);
+  } else { hook(); }
+})();
+</script>
+</body>
+</html>
