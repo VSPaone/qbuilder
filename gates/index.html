@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Gate Intuition — SVG Bloch Sphere</title>
+  <style>
+    :root{
+      --bg:#0b0f14; --panel:#0f1520; --ink:#e9f3ff; --muted:#9fb2c7; --line:#1a2433; --accent:#7fd7ff; --good:#98ffa2; --warn:#ffd166; --danger:#ff8aa0;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial}
+    .shell{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;max-width:1200px;margin:0 auto;padding:18px}
+    header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center}
+    h1{font-size:20px;margin:0}
+    .sub{color:var(--muted);font-size:13px}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .row{display:flex;align-items:center;gap:10px;margin:8px 0}
+    label{color:var(--muted);font-size:12px;width:46px}
+    input[type=range]{width:200px}
+    button{background:#142339;color:#dff1ff;border:1px solid #20364f;border-radius:10px;padding:8px 10px;cursor:pointer}
+    button:hover{filter:brightness(1.08)}
+    button.ghost{background:#0b1119}
+    .kbd{font-family:ui-monospace,Menlo,Consolas,monospace;background:#0b1119;border:1px solid #152236;border-radius:6px;padding:2px 6px;color:#bfe1ff;font-size:12px}
+    .grid{display:grid;gap:10px}
+    .two{grid-template-columns:1fr 1fr}
+    .formula{background:#0b1119;border:1px solid #152236;border-radius:12px;padding:10px;font-size:16px}
+    .note{color:var(--muted);font-size:13px}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#0b1119;border:1px solid #20364f;color:#a7cdfc;font-size:12px}
+    ul{margin:6px 0 0 18px}
+  </style>
+  <script>
+    // MathJax for crisp formulas (optional)
+    window.MathJax = { tex: {inlineMath: [['\\(','\\)'], ['$', '$']]}, svg: {fontCache: 'global'} };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <h1>Gate Intuition — SVG Bloch Sphere</h1>
+        <div class="sub">Pick a state by \(\theta,\phi\). Apply gates. See the statevector multiply and the Bloch arrow move — all in 2D SVG.</div>
+      </div>
+      <div class="controls">
+        <button id="btnReset">Reset</button>
+        <button id="btnUndo" class="ghost">Undo last</button>
+      </div>
+    </header>
+
+    <!-- LEFT: SVG Bloch sphere and quick stats -->
+    <div class="panel">
+      <svg id="bloch" viewBox="0 0 560 560" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6" refY="3.5" orient="auto">
+            <polygon points="0 0, 7 3.5, 0 7" fill="#e9f3ff"/>
+          </marker>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#7fd7ff" flood-opacity="0.6"/>
+          </filter>
+        </defs>
+
+        <!-- backdrop -->
+        <rect x="0" y="0" width="560" height="560" fill="#0b0f14"/>
+
+        <!-- outer sphere boundary -->
+        <circle id="sphere" cx="280" cy="280" r="220" fill="#0b1119" stroke="#1a2433" stroke-width="2"/>
+
+        <!-- equator ellipse (Z=0 plane) -->
+        <ellipse id="equator" cx="280" cy="280" rx="198" ry="110" fill="none" stroke="#21364d" stroke-width="2" stroke-dasharray="6 6"/>
+
+        <!-- axis guide arrows (X, Y, Z) -->
+        <line id="axisX" x1="280" y1="280" x2="280" y2="280" stroke="#6bc2ff" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <line id="axisY" x1="280" y1="280" x2="280" y2="280" stroke="#9bff9d" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <line id="axisZ" x1="280" y1="280" x2="280" y2="280" stroke="#ffd166" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+        <!-- previous state (ghost) -->
+        <line id="ghost" x1="280" y1="280" x2="280" y2="60" stroke="#93a6bd" stroke-opacity="0.35" stroke-width="3"/>
+
+        <!-- current state arrow -->
+        <line id="state" x1="280" y1="280" x2="280" y2="60" stroke="#e9f3ff" stroke-width="4" marker-end="url(#arrowhead)" filter="url(#glow)"/>
+
+        <!-- labels -->
+        <g font-family="ui-monospace,Menlo,Consolas,monospace" font-size="12" fill="#9fb2c7">
+          <text id="lblX" x="280" y="280">X</text>
+          <text id="lblY" x="280" y="280">Y</text>
+          <text id="lblZ" x="280" y="280">Z</text>
+        </g>
+      </svg>
+
+      <div class="grid two" style="margin-top:10px">
+        <div>
+          <div class="formula" id="vecDisp"></div>
+          <div class="note" id="probDisp"></div>
+        </div>
+        <div>
+          <div class="formula" id="blochDisp"></div>
+          <div class="note">Projection is oblique so you can see all three components at once.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Controls & gate explanations -->
+    <div class="panel">
+      <div class="row"><label>θ</label><input id="theta" type="range" min="0" max="3.1415926535" step="0.001" value="0.7"><span class="kbd" id="thetaVal"></span></div>
+      <div class="row"><label>φ</label><input id="phi" type="range" min="0" max="6.283185307" step="0.001" value="0.6"><span class="kbd" id="phiVal"></span></div>
+
+      <div class="row" style="margin-top:14px"><label>Gates</label>
+        <div class="controls">
+          <button class="gate" data-g="X">X</button>
+          <button class="gate" data-g="Y">Y</button>
+          <button class="gate" data-g="Z">Z</button>
+          <button class="gate" data-g="H">H</button>
+          <button class="gate" data-g="S">S</button>
+          <button class="gate" data-g="T">T</button>
+        </div>
+      </div>
+
+      <div class="row"><label>Rx</label>
+        <input id="rxAng" type="range" min="-3.1415926535" max="3.1415926535" step="0.001" value="1.5707963268">
+        <span class="kbd" id="rxVal"></span>
+        <button class="gate" data-g="Rx">Apply</button>
+      </div>
+      <div class="row"><label>Ry</label>
+        <input id="ryAng" type="range" min="-3.1415926535" max="3.1415926535" step="0.001" value="1.5707963268">
+        <span class="kbd" id="ryVal"></span>
+        <button class="gate" data-g="Ry">Apply</button>
+      </div>
+      <div class="row"><label>Rz</label>
+        <input id="rzAng" type="range" min="-3.1415926535" max="3.1415926535" step="0.001" value="1.5707963268">
+        <span class="kbd" id="rzVal"></span>
+        <button class="gate" data-g="Rz">Apply</button>
+      </div>
+
+      <div class="formula" id="gateMatrix"></div>
+      <div class="note" id="gateNote"></div>
+
+      <div style="margin-top:14px">
+        <span class="pill">History</span>
+        <ul id="hist"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Complex arithmetic =====
+    function C(re, im){ return {re, im}; }
+    function add(a,b){ return C(a.re+b.re, a.im+b.im); }
+    function sub(a,b){ return C(a.re-b.re, a.im-b.im); }
+    function mul(a,b){ return C(a.re*b.re - a.im*b.im, a.re*b.im + a.im*b.re); }
+    function conj(a){ return C(a.re, -a.im); }
+    function abs(a){ return Math.hypot(a.re, a.im); }
+    function phase(a){ return Math.atan2(a.im, a.re); }
+    function scale(a,k){ return C(a.re*k, a.im*k); }
+    function expi(x){ return C(Math.cos(x), Math.sin(x)); }
+    function fmtc(a){ let r=a.re.toFixed(4), i=a.im.toFixed(4); const s = (a.im>=0?'+':'−'); return `${r} ${s} i·${Math.abs(a.im).toFixed(4)}`; }
+    function fmt(x){ return (Math.abs(x)<1e-12?0:x).toFixed(4); }
+
+    // ===== State <-> angles =====
+    function fromAngles(theta, phi){ return [ C(Math.cos(theta/2),0), mul(expi(phi), C(Math.sin(theta/2),0)) ]; }
+    function toBloch(alpha,beta){
+      const ab = mul(conj(alpha), beta); // α* · β
+      const nx = 2*ab.re;
+      const ny = 2*ab.im;
+      const nz = (abs(alpha)**2) - (abs(beta)**2);
+      return {nx,ny,nz};
+    }
+
+    // ===== Gates (2x2 complex) =====
+    const I = [[C(1,0), C(0,0)], [C(0,0), C(1,0)]];
+    const X = [[C(0,0), C(1,0)], [C(1,0), C(0,0)]];
+    const Y = [[C(0,0), C(0,-1)], [C(0,1), C(0,0)]];
+    const Z = [[C(1,0), C(0,0)], [C(0,0), C(-1,0)]];
+    const H = [[scale(C(1,0),1/Math.SQRT2), scale(C(1,0),1/Math.SQRT2)], [scale(C(1,0),1/Math.SQRT2), scale(C(-1,0),1/Math.SQRT2)]];
+    const S = [[C(1,0), C(0,0)], [C(0,0), C(0,1)]];
+    const T = [[C(1,0), C(0,0)], [C(0,0), expi(Math.PI/4)]];
+    function Rx(a){ const c=Math.cos(a/2), s=Math.sin(a/2); return [[C(c,0), C(0,-s)], [C(0,-s), C(c,0)]]; }
+    function Ry(a){ const c=Math.cos(a/2), s=Math.sin(a/2); return [[C(c,0), C(-s,0)], [C(s,0), C(c,0)]]; }
+    function Rz(a){ return [[expi(-a/2), C(0,0)], [C(0,0), expi(a/2)]]; }
+
+    function apply(U, st){ const [a,b]=st; return [ add(mul(U[0][0],a), mul(U[0][1],b)), add(mul(U[1][0],a), mul(U[1][1],b)) ]; }
+
+    // ===== SVG helpers =====
+    const svg = document.getElementById('bloch');
+    const cx = 280, cy = 280, R = 220;
+    function proj(nx,ny,nz){ // oblique projection to 2D
+      const x = cx + (0.9*nx)*R;
+      const y = cy + (-nz + 0.5*ny)*R;
+      return {x,y};
+    }
+
+    const axisX = document.getElementById('axisX');
+    const axisY = document.getElementById('axisY');
+    const axisZ = document.getElementById('axisZ');
+    const lblX = document.getElementById('lblX');
+    const lblY = document.getElementById('lblY');
+    const lblZ = document.getElementById('lblZ');
+    const ghost = document.getElementById('ghost');
+    const stateLine = document.getElementById('state');
+
+    function placeAxes(){
+      const pX = proj(1,0,0); axisX.setAttribute('x2', pX.x); axisX.setAttribute('y2', pX.y); lblX.setAttribute('x', pX.x+6); lblX.setAttribute('y', pX.y-6);
+      const pY = proj(0,1,0); axisY.setAttribute('x2', pY.x); axisY.setAttribute('y2', pY.y); lblY.setAttribute('x', pY.x+6); lblY.setAttribute('y', pY.y-6);
+      const pZ = proj(0,0,1); axisZ.setAttribute('x2', pZ.x); axisZ.setAttribute('y2', pZ.y); lblZ.setAttribute('x', pZ.x+6); lblZ.setAttribute('y', pZ.y-6);
+    }
+
+    // ===== UI elements =====
+    const thetaEl = document.getElementById('theta');
+    const phiEl = document.getElementById('phi');
+    const thetaVal = document.getElementById('thetaVal');
+    const phiVal = document.getElementById('phiVal');
+    const rxEl = document.getElementById('rxAng');
+    const ryEl = document.getElementById('ryAng');
+    const rzEl = document.getElementById('rzAng');
+    const rxVal = document.getElementById('rxVal');
+    const ryVal = document.getElementById('ryVal');
+    const rzVal = document.getElementById('rzVal');
+
+    const vecDisp = document.getElementById('vecDisp');
+    const probDisp = document.getElementById('probDisp');
+    const blochDisp = document.getElementById('blochDisp');
+    const gateMatrix = document.getElementById('gateMatrix');
+    const gateNote = document.getElementById('gateNote');
+    const hist = document.getElementById('hist');
+
+    const btnReset = document.getElementById('btnReset');
+    const btnUndo = document.getElementById('btnUndo');
+
+    // ===== State =====
+    let state = fromAngles(parseFloat(thetaEl.value), parseFloat(phiEl.value));
+    const history = [];
+
+    function normalize(){
+      const n = Math.hypot(abs(state[0]), abs(state[1]));
+      if(n>0){ state=[ scale(state[0],1/n), scale(state[1],1/n) ]; }
+    }
+
+    function updateDisplays(){
+      const theta = parseFloat(thetaEl.value), phi = parseFloat(phiEl.value);
+      thetaVal.textContent = `${fmt(theta)} rad`; phiVal.textContent = `${fmt(phi)} rad`;
+      rxVal.textContent = `${fmt(parseFloat(rxEl.value))} rad`; ryVal.textContent = `${fmt(parseFloat(ryEl.value))} rad`; rzVal.textContent = `${fmt(parseFloat(rzEl.value))} rad`;
+
+      // compute Bloch from current state (state is source of truth)
+      const [a,b]=state; const {nx,ny,nz}=toBloch(a,b);
+      const p = proj(nx,ny,nz);
+      // ghost keeps last position
+      const x1 = stateLine.getAttribute('x2'), y1 = stateLine.getAttribute('y2');
+      ghost.setAttribute('x2', x1); ghost.setAttribute('y2', y1);
+      // draw state arrow
+      stateLine.setAttribute('x1', cx); stateLine.setAttribute('y1', cy);
+      stateLine.setAttribute('x2', p.x); stateLine.setAttribute('y2', p.y);
+
+      // statevector & probabilities
+      vecDisp.innerHTML = String.raw`$|\psi\rangle = \begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \begin{bmatrix} ${fmt(state[0].re)} ${state[0].im>=0?'+':'−'} i\,${fmt(Math.abs(state[0].im))} \\ ${fmt(state[1].re)} ${state[1].im>=0?'+':'−'} i\,${fmt(Math.abs(state[1].im))} \end{bmatrix}$`;
+      const p0 = (abs(a)**2), p1=(abs(b)**2);
+      probDisp.textContent = `P(0) = ${fmt(p0)},   P(1) = ${fmt(p1)}`;
+
+      // bloch vector
+      blochDisp.innerHTML = String.raw`$\vec n = (n_x,n_y,n_z) = (${fmt(nx)},\;${fmt(ny)},\;${fmt(nz)})$`;
+      if(window.MathJax) MathJax.typesetPromise();
+    }
+
+    function setFromAngles(){ state = fromAngles(parseFloat(thetaEl.value), parseFloat(phiEl.value)); normalize(); updateDisplays(); }
+
+    thetaEl.addEventListener('input', setFromAngles);
+    phiEl.addEventListener('input', setFromAngles);
+
+    // ===== Gate actions =====
+    function showMatrix(U, note){
+      function cell(z){ return `${fmt(z.re)} ${z.im>=0?'+':'−'} i\,${fmt(Math.abs(z.im))}`; }
+      gateMatrix.innerHTML = String.raw`$U = \begin{bmatrix} ${cell(U[0][0])} & ${cell(U[0][1])} \\ ${cell(U[1][0])} & ${cell(U[1][1])} \end{bmatrix}$`;
+      gateNote.textContent = note || '';
+      if(window.MathJax) MathJax.typesetPromise();
+    }
+
+    function pushHist(name){
+      history.push(state.map(z=>C(z.re,z.im))); // deep copy
+      const li = document.createElement('li'); li.textContent = name; hist.appendChild(li);
+      btnUndo.disabled = false;
+    }
+
+    function onGate(name){
+      let U, note='';
+      if(name==='X'){ U=X; note='Pauli‑X = R_x(π): flips |0⟩↔|1⟩; rotates by π around X‑axis.'; }
+      else if(name==='Y'){ U=Y; note='Pauli‑Y = R_y(π): rotates by π around Y‑axis.'; }
+      else if(name==='Z'){ U=Z; note='Pauli‑Z = R_z(π): adds a relative phase to |1⟩; rotates by π around Z‑axis.'; }
+      else if(name==='H'){ U=H; note='Hadamard: maps Z‑axis to X and |0⟩→|+⟩, |1⟩→|−⟩ (Clifford).'; }
+      else if(name==='S'){ U=S; note='Phase S = R_z(π/2): quarter‑turn around Z.'; }
+      else if(name==='T'){ U=T; note='T gate = R_z(π/4): eighth‑turn around Z.'; }
+      else if(name==='Rx'){ U=Rx(parseFloat(rxEl.value)); note=`R_x(${fmt(parseFloat(rxEl.value))}) rotation.`; }
+      else if(name==='Ry'){ U=Ry(parseFloat(ryEl.value)); note=`R_y(${fmt(parseFloat(ryEl.value))}) rotation.`; }
+      else if(name==='Rz'){ U=Rz(parseFloat(rzEl.value)); note=`R_z(${fmt(parseFloat(rzEl.value))}) rotation.`; }
+      else { return; }
+
+      showMatrix(U, note);
+      pushHist(name);
+      state = apply(U, state);
+      normalize();
+      updateDisplays();
+    }
+
+    document.querySelectorAll('.gate').forEach(b=>{
+      b.addEventListener('click', ()=> onGate(b.dataset.g));
+    });
+
+    btnReset.addEventListener('click', ()=>{
+      state = fromAngles(0,0); thetaEl.value = 0; phiEl.value = 0; hist.innerHTML=''; history.length=0; btnUndo.disabled=true; updateDisplays();
+    });
+
+    btnUndo.addEventListener('click', ()=>{
+      if(history.length===0) return; const prev = history.pop(); state = [prev[0], prev[1]]; updateDisplays(); hist.removeChild(hist.lastChild); if(history.length===0) btnUndo.disabled=true;
+    });
+
+    // init
+    placeAxes(); setFromAngles(); updateDisplays();
+  </script>
+</body>
+</html>
