@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Simon’s Algorithm — Visual, Interactive</title>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#121a33; --ink:#e8efff; --muted:#a7b3d9; --accent:#7aa2ff; --accent2:#8ef0c6; --warn:#ffd166; --ok:#7ae582; --bad:#ff6b6b;
+    --chip:#1b254a; --chip2:#122245; --grid:#1a2340; --code:#0e1729;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial; background:linear-gradient(180deg,#070a16, var(--bg)); color:var(--ink)}
+  a{color:var(--accent)}
+  .wrap{max-width:1200px;margin:0 auto;padding:24px}
+  header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:16px}
+  h1{font-size:28px;margin:0;letter-spacing:.3px}
+  .sub{color:var(--muted);font-size:14px}
+  .grid{display:grid;grid-template-columns:420px 1fr;gap:20px}
+  .card{background:linear-gradient(180deg,var(--panel),#0c1430);border:1px solid #1e2a55;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+  .pad{padding:18px}
+  h2{font-size:18px;margin:0 0 10px 0}
+  h3{font-size:15px;margin:16px 0 8px 0;color:var(--accent)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  label{font-size:13px;color:var(--muted)}
+  select,button,input[type="number"],.btn{
+    background:var(--chip);color:var(--ink);border:1px solid #253564;border-radius:10px;padding:8px 10px;font-size:14px
+  }
+  button{cursor:pointer}
+  button.primary{background:linear-gradient(180deg,#2548ae,#1b37a0);border-color:#3358c8}
+  button.ghost{background:transparent;border-color:#2e4075}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .kbd{font-family:ui-monospace,Consolas,Monaco,Menlo,monospace;background:var(--code);border:1px solid #26345e;border-radius:8px;padding:2px 6px}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:var(--chip2);border:1px solid #253564;border-radius:999px;padding:6px 10px;font-size:12px;color:var(--muted)}
+  .tag{display:inline-block;background:#19305f;border:1px solid #2a4b93;color:#cfe0ff;border-radius:999px;padding:4px 10px;font-size:12px;margin-right:6px}
+  .muted{color:var(--muted)}
+  .mono{font-family:ui-monospace,Consolas,Monaco,Menlo,monospace}
+  .hr{height:1px;background:#1a2a55;margin:12px 0}
+  .flow p{margin:8px 0;line-height:1.5}
+  .small{font-size:12px;color:var(--muted)}
+
+  /* Visuals */
+  .stage{position:relative;min-height:360px;border-radius:14px;background:radial-gradient(1200px 400px at 10% -10%, #1b2758 0%, transparent 60%),
+                                      radial-gradient(1000px 500px at 100% 0%, #0f1a3f 0%, transparent 60%),
+                                      linear-gradient(180deg,#0b1433 0%, #091027 100%);
+         border:1px solid #1e2a55; overflow:hidden}
+  .stage .gridline{position:absolute;inset:0;background-image:linear-gradient(transparent 95%, rgba(255,255,255,.05) 95%),
+                                                linear-gradient(90deg, transparent 95%, rgba(255,255,255,.05) 95%);
+                    background-size:40px 40px;opacity:.35}
+  .register{display:grid;grid-template-columns:100px 1fr;gap:10px;margin:14px}
+  .regName{background:#0c1636;border:1px solid #26345e;border-radius:10px;padding:10px;font-weight:600;text-align:center}
+  .wire{position:relative;background:#101c3e;border:1px dashed #273b79;border-radius:12px;padding:10px}
+  .wire .bits{display:flex;gap:8px;flex-wrap:wrap}
+  .bit{min-width:36px;padding:6px 8px;border-radius:8px;border:1px solid #2d3f7a;background:#0d1a39;text-align:center}
+  .bit.on{background:#0e2d64;border-color:#3966ea}
+  .eqs{display:flex;gap:8px;flex-wrap:wrap}
+  .eq{background:#11214a;border:1px solid #29407c;border-radius:8px;padding:6px 8px}
+  .eq.good{border-color:#3aa374}
+  .eq.bad{border-color:#c74a4a}
+
+  /* Table */
+  table{border-collapse:separate;border-spacing:0;width:100%}
+  th,td{border-bottom:1px solid #1e2a55;padding:8px 10px;text-align:left;font-size:13px}
+  th{color:#bcd0ff;font-weight:600}
+  tbody tr:hover{background:#0f1a34}
+
+  .bubble{position:absolute;inset:auto 12px 12px auto;max-width:420px;background:#0f1c3f;border:1px solid #2b3f7a;border-radius:14px;padding:12px}
+  .bubble h4{margin:0 0 6px 0;color:#9dc0ff}
+
+  .statusbar{display:flex;flex-wrap:wrap;gap:8px}
+  .status{background:#0f1d40;border:1px solid #20366f;border-radius:10px;padding:6px 10px;font-size:12px}
+  .status.ok{border-color:#2a7a56;color:#bff2d9}
+  .status.warn{border-color:#b38a34;color:#ffe0a8}
+
+  .flash{animation:flash 650ms ease-out}
+  @keyframes flash{from{box-shadow:0 0 0 0 rgba(122,162,255,.4)}to{box-shadow:0 0 0 24px rgba(122,162,255,0)}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Simon’s Algorithm — Visual, Interactive Walkthrough</h1>
+        <div class="sub">Discover the hidden twin rule <span class="mono">s</span> by generating orthogonality clues <span class="mono">y·s = 0</span>.</div>
+      </div>
+      <div class="row">
+        <span class="pill">Made for teaching • self‑contained HTML</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- LEFT: EXPLANATION + CONTROLS -->
+      <section class="card pad flow">
+        <h2>How it works (story ↔ math)</h2>
+        <p><b>Story.</b> A magician’s box pairs toys: each toy <span class="mono">x</span> has a hidden twin <span class="mono">x ⊕ s</span> that gives the same prize. Find the secret twin rule <span class="mono">s</span>.</p>
+        <p><b>Math.</b> Oracle <span class="mono">f</span> is 2‑to‑1 with period <span class="mono">s≠0</span>: <span class="mono">f(x)=f(x⊕s)</span>. After preparing a superposition and querying, measuring the output leaves <span class="mono">(|x⟩+|x⊕s⟩)/√2</span>. Applying Hadamards yields outcomes <span class="mono">y</span> that always satisfy <span class="mono">y·s=0 (mod 2)</span>. Collect ≈<span class="mono">n−1</span> independent clues and solve for <span class="mono">s</span>.</p>
+
+        <div class="hr"></div>
+        <h3>Controls</h3>
+        <div class="row" style="margin-bottom:8px">
+          <label>Bits (n):</label>
+          <select id="nSelect"></select>
+          <button id="btnRandS" class="ghost">Randomize s</button>
+          <span class="tag">secret s: <span id="sView" class="mono"></span></span>
+        </div>
+        <div class="row" style="margin-bottom:8px">
+          <button id="btnReset" class="ghost">Reset run</button>
+          <button id="btnStep" class="primary">Step ▶</button>
+          <button id="btnAuto" class="">Auto‑run</button>
+          <label>samples/auto:</label>
+          <input id="iters" type="number" value="8" min="1" max="256" style="width:80px" />
+        </div>
+        <div class="statusbar" id="statusBar"></div>
+
+        <div class="hr"></div>
+        <h3>Collected clues <span class="small">(each is a row y with y·s=0)</span></h3>
+        <div class="eqs" id="eqList"></div>
+        <div class="row" style="margin-top:8px">
+          <button id="btnSolve" class="">Solve for s</button>
+          <span id="solveMsg" class="small"></span>
+        </div>
+
+        <div class="hr"></div>
+        <h3>Oracle table f(x)</h3>
+        <div class="small">By construction f(x)=f(x⊕s). Pairs are highlighted.</div>
+        <div class="pad" style="padding-left:0">
+          <table>
+            <thead><tr><th>x</th><th>x⊕s</th><th>f(x)</th></tr></thead>
+            <tbody id="fxTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- RIGHT: VISUAL SIMON CIRCUIT / STATE -->
+      <section class="card pad">
+        <h2>Quantum circuit intuition</h2>
+        <div class="stage" id="stage">
+          <div class="gridline"></div>
+
+          <div class="register" id="regX">
+            <div class="regName">Input |x⟩ (n qubits)</div>
+            <div class="wire">
+              <div class="bits" id="xBits"></div>
+              <div class="small">State sketch: <span id="xState" class="mono"></span></div>
+            </div>
+          </div>
+
+          <div class="register" id="regF">
+            <div class="regName">Output |f(x)⟩</div>
+            <div class="wire">
+              <div class="bits" id="fBits"></div>
+              <div class="small">After oracle, measurement collapses output; input becomes a twin‑pair superposition.</div>
+            </div>
+          </div>
+
+          <div class="bubble" id="bubble">
+            <h4 id="bubbleTitle">Step 0 · Initialize</h4>
+            <div id="bubbleText" class="small">Start in |0…0⟩|0…0⟩. We will apply H⊗n to create all x at once.</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="row">
+            <span class="pill">Step legend:</span>
+            <span class="tag">H⊗n → superposition</span>
+            <span class="tag">U<sub>f</sub> → oracle</span>
+            <span class="tag">Measure output</span>
+            <span class="tag">H⊗n → clues</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="small" style="margin-top:16px;opacity:.8">
+      Tip: Press <span class="kbd">Auto‑run</span> to generate multiple clues quickly; then click <span class="kbd">Solve for s</span>.
+    </footer>
+  </div>
+
+<script>
+// ======= Helpers over GF(2) =======
+const rng = {
+  _s: 0x2f6e2b1 ^ Date.now(),
+  next(){ // xorshift32
+    let x = this._s |= 0; x ^= x << 13; x ^= x >>> 17; x ^= x << 5; this._s = x; return (x>>>0)/4294967296;
+  },
+  int(n){ return Math.floor(this.next()*n); }
+};
+const toBits = (x,n)=>Array.from({length:n},(_,i)=> (x>>(n-1-i))&1 );
+const fromBits = (bits)=>bits.reduce((a,b)=> (a<<1)|b,0);
+const xorBits = (a,b)=>a.map((v,i)=>v^b[i]);
+const dot2 = (a,b)=> a.reduce((acc,v,i)=> acc ^ (v&b[i]), 0);
+const fmtBits = (bits)=> bits.join('');
+
+// Sample a y uniformly from the subspace { y | y·s = 0 }
+function sampleYOrthogonalTo(sBits){
+  const n = sBits.length;
+  // If s = e_k, then constraint is y_k = 0; more generally, ensure dot2(y,s)=0
+  while(true){
+    const y = Array.from({length:n},()=> rng.int(2));
+    if(dot2(y, sBits) === 0) return y;
+  }
+}
+
+// Build a 2-to-1 oracle with hidden period s: f(x)=f(x⊕s)
+function makeOracle(n, s){
+  const sBits = toBits(s,n);
+  const used = new Map();
+  const f = new Map();
+  let outCounter = 0;
+  function canonRep(x){ const y = x ^ s; return Math.min(x,y); }
+  for(let x=0; x<(1<<n); x++){
+    const r = canonRep(x);
+    if(!used.has(r)){
+      // assign a fresh random output label of n bits (for compact display use counter)
+      const label = outCounter++; // could be random too
+      used.set(r,label);
+      f.set(x,label); f.set(x^s,label);
+    }
+  }
+  return {
+    n,
+    s,
+    sBits,
+    f,
+    fx(x){ return f.get(x); }
+  };
+}
+
+// Gaussian elimination mod 2 to solve Y * s = 0 for s != 0
+function solveForS(eqs){
+  // We want to find non-zero s in nullspace of matrix Y (rows = eqs)
+  // Practical: for Simon, collecting n-1 independent rows determines s up to unique non-zero.
+  const n = eqs[0]?.length || 0;
+  // Build row-reduced echelon form and track nullspace basis. For teaching, we just brute force s in [1..2^n-1]
+  if(n===0) return null;
+  const total = 1<<n;
+  for(let s=1; s<total; s++){
+    const sBits = toBits(s,n);
+    if(eqs.every(y => dot2(y, sBits)===0)){
+      return sBits; // first matching non-zero solution
+    }
+  }
+  return null;
+}
+
+// ======= UI State =======
+const el = id=>document.getElementById(id);
+const nSelect = el('nSelect');
+const sView   = el('sView');
+const fxTable = el('fxTable');
+const xBits   = el('xBits');
+const fBits   = el('fBits');
+const xState  = el('xState');
+const eqList  = el('eqList');
+const solveMsg= el('solveMsg');
+const statusBar = el('statusBar');
+const bubbleTitle = el('bubbleTitle');
+const bubbleText  = el('bubbleText');
+const stage = el('stage');
+
+let n = 4; // default
+let oracle = null;
+let eqs = []; // collected y rows
+let step = 0;
+let currentPair = null; // {x, xXorS}
+
+function initSelectors(){
+  for(let k=2;k<=8;k++){
+    const o = document.createElement('option'); o.value=k; o.textContent=`${k} bits`; if(k===n) o.selected=true; nSelect.appendChild(o);
+  }
+  nSelect.addEventListener('change', ()=>{ n = parseInt(nSelect.value,10); resetAll(true); });
+}
+
+function randomNonZero(n){
+  let s=0; while(s===0){ s = rng.int(1<<n); } return s;
+}
+
+function setSecret(s){
+  oracle = makeOracle(n, s);
+  sView.textContent = fmtBits(oracle.sBits);
+  stage.classList.add('flash'); setTimeout(()=>stage.classList.remove('flash'), 400);
+  renderFxTable();
+}
+
+function renderFxTable(){
+  fxTable.innerHTML='';
+  const pairsSeen = new Set();
+  for(let x=0; x<(1<<n); x++){
+    const mate = x ^ oracle.s;
+    const r = Math.min(x,mate);
+    if(pairsSeen.has(r)) continue; // show each pair once
+    pairsSeen.add(r);
+    const tr = document.createElement('tr');
+    const tdX = document.createElement('td');
+    const tdMate = document.createElement('td');
+    const tdFx = document.createElement('td');
+    tdX.innerHTML = `<span class="mono">${fmtBits(toBits(x,n))}</span>`;
+    tdMate.innerHTML = `<span class="mono">${fmtBits(toBits(mate,n))}</span>`;
+    tdFx.innerHTML = `<span class="mono">${fmtBits(toBits(oracle.fx(x), n))}</span>`;
+    tr.appendChild(tdX); tr.appendChild(tdMate); tr.appendChild(tdFx);
+    tr.style.background = 'linear-gradient(90deg,#0f1e42,transparent)';
+    fxTable.appendChild(tr);
+  }
+}
+
+function renderRegisters(){
+  // Simple bit chips placeholders (we don’t simulate amplitudes visually per-basis; we show state sketch)
+  xBits.innerHTML=''; fBits.innerHTML='';
+  for(let i=0;i<n;i++){
+    const b = document.createElement('div'); b.className='bit'; b.textContent='q'+i; xBits.appendChild(b);
+  }
+  for(let i=0;i<n;i++){
+    const b = document.createElement('div'); b.className='bit'; b.textContent='b'+i; fBits.appendChild(b);
+  }
+}
+
+function setXState(text){ xState.textContent = text; }
+
+function pushStatus(t, kind){
+  const s=document.createElement('div'); s.className='status ' + (kind||''); s.textContent=t; statusBar.prepend(s);
+  setTimeout(()=>{ s.style.opacity=.8; },10);
+}
+
+function addEqRow(y){
+  const tag=document.createElement('div'); tag.className='eq'; tag.innerHTML = `<span class="mono">y=${fmtBits(y)}</span> ⇒ <span class="mono">y·s=0</span>`; eqList.appendChild(tag);
+}
+
+function resetAll(keepS=false){
+  eqs = []; eqList.innerHTML=''; solveMsg.textContent=''; step=0; currentPair=null; statusBar.innerHTML='';
+  if(!keepS){ setSecret(randomNonZero(n)); } else { setSecret(oracle?.s || randomNonZero(n)); }
+  renderRegisters();
+  setXState('|0…0⟩');
+  bubbleTitle.textContent = 'Step 0 · Initialize';
+  bubbleText.textContent  = 'Start in |0…0⟩|0…0⟩. We will apply H⊗n to create all x at once.';
+}
+
+// ======= Simon Steps (simulated sampling) =======
+function doStep(){
+  if(step===0){
+    // Apply H^n to input |0…0⟩ → (1/√N) Σ_x |x⟩
+    setXState('H⊗n → (1/√N) Σ_x |x⟩');
+    bubbleTitle.textContent = 'Step 1 · Superposition';
+    bubbleText.textContent  = 'We create all inputs x at once using H⊗n.';
+    pushStatus('Prepared superposition (all x).','ok');
+    step=1; return;
+  }
+  if(step===1){
+    // Oracle Uf: |x⟩|0⟩ → |x⟩|f(x)⟩; pairs share same f(x)
+    bubbleTitle.textContent = 'Step 2 · Oracle U_f';
+    bubbleText.textContent  = 'We query the function; x and x⊕s map to the same output.';
+    pushStatus('Applied oracle U_f (paired inputs share output).','ok');
+    step=2; return;
+  }
+  if(step===2){
+    // Measure output → collapse to one f(x0); input becomes (|x0⟩+|x0⊕s⟩)/√2
+    const x0 = rng.int(1<<n);
+    const x1 = x0 ^ oracle.s;
+    currentPair = {x0,x1};
+    setXState(`( |${fmtBits(toBits(x0,n))}⟩ + |${fmtBits(toBits(x1,n))}⟩ ) / √2`);
+    bubbleTitle.textContent = 'Step 3 · Measure output';
+    bubbleText.textContent  = 'Output collapses to one value; input is now a superposition of twin pair.';
+    pushStatus(`Measured output; input is a twin‑pair superposition.`, 'warn');
+    step=3; return;
+  }
+  if(step===3){
+    // Apply H^n again and sample y with y·s=0
+    const y = sampleYOrthogonalTo(oracle.sBits);
+    eqs.push(y);
+    addEqRow(y);
+    bubbleTitle.textContent = 'Step 4 · Hadamards again';
+    bubbleText.textContent  = 'Interference conserves only y with y·s=0. Record this linear clue.';
+    pushStatus(`Observed y=${fmtBits(y)} with y·s=0.`, 'ok');
+    // back to Step 1 to repeat collection
+    step=1; return;
+  }
+}
+
+function autoRun(k){
+  for(let i=0;i<k;i++) doStep();
+}
+
+function trySolve(){
+  if(eqs.length===0){ solveMsg.textContent='Collect some clues first.'; return; }
+  const sBits = solveForS(eqs);
+  if(!sBits){ solveMsg.textContent='Not enough independent clues yet. Keep sampling.'; return; }
+  const ok = fmtBits(sBits) === fmtBits(oracle.sBits);
+  solveMsg.innerHTML = ok
+    ? `Recovered s = <span class="mono">${fmtBits(sBits)}</span> ✓`
+    : `A solution was found but doesn’t match the generator (teaching mode): <span class="mono">${fmtBits(sBits)}</span>`;
+  if(ok) pushStatus('Solved for s (unique non‑zero in nullspace).','ok');
+}
+
+// ======= Hook up controls =======
+initSelectors();
+setSecret(randomNonZero(n));
+renderRegisters();
+
+el('btnRandS').onclick = ()=> setSecret(randomNonZero(n));
+el('btnReset').onclick = ()=> resetAll(false);
+el('btnStep').onclick  = ()=> doStep();
+el('btnAuto').onclick  = ()=> { const k = Math.max(1, Math.min(256, parseInt(el('iters').value||'8',10))); autoRun(k); };
+el('btnSolve').onclick = ()=> trySolve();
+
+</script>
+</body>
+</html>
