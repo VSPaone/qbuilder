@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>100 Quantum-Native Project Ideas — Ready for Students</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root{
+    --bg:#0b0f14; --fg:#e6eef8; --muted:#98a6b3; --card:#121822; --card2:#0f1520;
+    --border:#1f2a38; --accent:#4fd1c5; --chip:#1a2230; --shadow:0 10px 30px rgba(0,0,0,.35);
+    --sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:linear-gradient(180deg,#0b0f14 0%,#0d141f 100%);color:var(--fg);font:16px/1.6 var(--sans)}
+  header{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,rgba(13,20,31,.9),rgba(13,20,31,.7));backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px 20px}
+  h1{margin:0 0 6px;font:800 28px/1.2 var(--sans);letter-spacing:-.02em}
+  .sub{color:var(--muted)}
+  .controls{display:grid;grid-template-columns:1fr 220px 160px;gap:10px;margin-top:14px}
+  input[type="search"],select,button{
+    background:var(--card);color:var(--fg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;
+    font:600 14px var(--sans);outline:none;
+  }
+  button{background:var(--accent);color:#0a0f15;border:none;cursor:pointer}
+  button:hover{filter:brightness(.95)}
+  main .wrap{padding-top:14px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media (max-width:980px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:640px){.grid{grid-template-columns:1fr}.controls{grid-template-columns:1fr 1fr 1fr}}
+  .card{
+    background: radial-gradient(120% 120% at 100% 0%, var(--card) 0%, var(--card2) 100%);
+    border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:var(--shadow); min-height:220px;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .card:hover{transform:translateY(-2px)}
+  .idea{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .badge{font:700 12px var(--sans);color:#0a0f15;background:var(--accent);padding:4px 8px;border-radius:999px}
+  .title{font:800 18px/1.25 var(--sans)}
+  .row{display:grid;grid-template-columns:110px 1fr;gap:10px;margin:8px 0}
+  .key{color:var(--muted)}
+  .val{color:#eaf3ff}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .chip{background:var(--chip);border:1px solid var(--border);color:#d7e4f2;padding:4px 8px;border-radius:999px;font:600 12px var(--sans)}
+  footer{color:var(--muted);text-align:center;padding:28px 0}
+  .count{color:var(--muted);font-weight:700;margin-left:6px}
+  @media print{
+    header{position:static;backdrop-filter:none}
+    .controls{display:none}
+    body{background:#fff;color:#000}
+    .card{page-break-inside:avoid;box-shadow:none}
+    .badge{color:#fff;background:#000}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>100 Quantum-Native Project Ideas <span class="count" id="count"></span></h1>
+    <div class="sub">Format: <b>Idea</b>, <b>Industry</b>, <b>Input</b>, <b>Output</b>, <b>Companies</b>. Use Grover-style superposition → compute → phase-oracle → diffuser → measure; optional soft-bias flag.</div>
+    <div class="controls">
+      <input id="q" type="search" placeholder="Search ideas, inputs, outputs, companies…" />
+      <select id="industry">
+        <option value="">All industries</option>
+      </select>
+      <button onclick="window.print()">Print / Save as PDF</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div class="grid" id="grid"></div>
+  </div>
+</main>
+
+<footer>
+  Built for students: small qubit demos → impactful resumes. Use public/synthetic data, keep oracles transparent & explainable.
+</footer>
+
+<script>
+const ideas = [
+/* ===== Finance (1–10) ===== */
+{idea:"Budget-constrained best stock pick",industry:"Finance",
+ input:"Prices, expected returns per asset; budget B",
+ output:"Subset (bitstring) with cost ≤ B and maximum expected return",
+ companies:["JPMorgan Chase","BlackRock","Fidelity","Robinhood"]},
+{idea:"Max Sharpe (toy)",industry:"Finance",
+ input:"(μ,σ) per asset; budget B; threshold τ on μ/σ",
+ output:"Portfolio with cost ≤ B and Sharpe ≥ τ (soft bias ↑μ)",
+ companies:["Goldman Sachs","Vanguard","Charles Schwab","Citadel"]},
+{idea:"Pairs-trading filter",industry:"Finance",
+ input:"Pair correlations ρ(i,j), directional signals s(i)",
+ output:"Pair id with |ρ|≥τ and aligned signals",
+ companies:["Two Sigma","AQR","Renaissance","Jump Trading"]},
+{idea:"Credit screening (binary)",industry:"Finance",
+ input:"Applicant features with label {0/1}; risk flags",
+ output:"Applicant ids where label=1 and risk under cap",
+ companies:["American Express","Capital One","Discover","SoFi"]},
+{idea:"Fraud spike detector",industry:"Finance",
+ input:"Payment windows; rolling z-score against baseline",
+ output:"Window ids with z ≥ τ (anomaly)",
+ companies:["Visa","Mastercard","Stripe","Adyen"]},
+{idea:"Derivative quote chooser",industry:"Finance",
+ input:"Option quotes with Greeks; delta-neutral window; price",
+ output:"Quote/bundle meeting neutrality with minimum cost",
+ companies:["CME Group","Cboe","DRW","Optiver"]},
+{idea:"ETF subset cover",industry:"Finance",
+ input:"Sector coverage vectors; target coverage; subset size/penalty",
+ output:"Minimal subset covering target sectors",
+ companies:["State Street SPDR","iShares","Invesco","Vanguard"]},
+{idea:"Best bond ladder",industry:"Finance",
+ input:"Candidate bonds: maturity, yield; cash-flow needs",
+ output:"Feasible ladder maximizing yield",
+ companies:["PIMCO","BlackRock iShares","Charles Schwab"]},
+{idea:"Market regime classifier",industry:"Finance",
+ input:"Price/indicator sequences with regime labels",
+ output:"Sequence ids matching regime R under drawdown cap",
+ companies:["Bloomberg","Refinitiv","Nasdaq","MSCI"]},
+{idea:"Triangular FX arbitrage",industry:"Finance",
+ input:"Small FX graph with quotes",
+ output:"Cycle id where product of rates > 1−ε",
+ companies:["HSBC","Citi","Deutsche Bank","XTX Markets"]},
+
+/* ===== Supply Chain & Logistics (11–20) ===== */
+{idea:"Feasible delivery route (toy VRP)",industry:"Supply Chain",
+ input:"4–8 stops, time windows, vehicle capacity",
+ output:"Route id meeting time/capacity (soft bias ↓distance)",
+ companies:["UPS","FedEx","DHL","Maersk"]},
+{idea:"Warehouse slot allocation",industry:"Supply Chain",
+ input:"SKU turnover scores; slot cap K",
+ output:"K-subset maximizing expected throughput",
+ companies:["Amazon","Walmart","Target","JD Logistics"]},
+{idea:"Supplier selection",industry:"Supply Chain",
+ input:"Cost, quality, lead-time; budget and reliability weights",
+ output:"Supplier subset cost ≤ B & quality ≥ τ (maximize reliability)",
+ companies:["Procter & Gamble","Unilever","Nestlé","Boeing"]},
+{idea:"Demand anomaly windows",industry:"Supply Chain",
+ input:"Sales time series; rolling z-score",
+ output:"Window ids with spike/valley beyond τ",
+ companies:["Nike","Zara (Inditex)","H&M","PepsiCo"]},
+{idea:"Cold-chain breach detector",industry:"Supply Chain",
+ input:"Temperature streams with allowed band",
+ output:"Segment ids with any breach",
+ companies:["Pfizer","Moderna","Thermo Fisher","McKesson"]},
+{idea:"Backorder minimization set",industry:"Supply Chain",
+ input:"Items with stock/backlog; reorder cost",
+ output:"Replenishment subset meeting backlog ≤ τ with min cost",
+ companies:["Dell","HP","Apple","Lenovo"]},
+{idea:"Dock schedule feasibility",industry:"Supply Chain",
+ input:"Arrival times vs limited docks",
+ output:"Clash-free schedule (soft bias on-time)",
+ companies:["UPS Supply Chain","Kuehne+Nagel","XPO"]},
+{idea:"Packaging combination selector",industry:"Supply Chain",
+ input:"Box sizes; item dims/weights",
+ output:"Combo meeting constraints & minimizing wasted volume",
+ companies:["IKEA","Amazon","Uline","DHL eCommerce"]},
+{idea:"Shipment consolidation",industry:"Supply Chain",
+ input:"Orders, truck capacities; stop costs",
+ output:"Bundles near capacity with minimal extra stops",
+ companies:["C.H. Robinson","Flexport","Maersk"]},
+{idea:"Route risk screening",industry:"Supply Chain",
+ input:"Lane risk scores; distance",
+ output:"Route id with risk ≤ τ and minimal distance",
+ companies:["BP Shipping","Schneider","JB Hunt"]},
+
+/* ===== Cybersecurity (21–30) ===== */
+{idea:"Password policy auditor",industry:"Cybersecurity",
+ input:"Candidate strings; breach bloom filter; policy rules",
+ output:"Password ids meeting policy and not in breach set",
+ companies:["Microsoft","Okta","1Password","LastPass"]},
+{idea:"Port-scan anomaly",industry:"Cybersecurity",
+ input:"Port counts per time window",
+ output:"Windows deviating from baseline ≥ τ",
+ companies:["Palo Alto Networks","Cisco","Fortinet","CrowdStrike"]},
+{idea:"Minimal IDS rule set",industry:"Cybersecurity",
+ input:"Signature coverage matrix over attacks",
+ output:"Minimal subset covering required threats",
+ companies:["Suricata/Snort users","Cloudflare","AWS Security"]},
+{idea:"Phishing domain finder",industry:"Cybersecurity",
+ input:"WHOIS/age/features; Levenshtein to brand",
+ output:"Domain ids exceeding phishing score with low FP risk",
+ companies:["Google Safe Browsing","Proofpoint","Mimecast"]},
+{idea:"Access SoD violations",industry:"Cybersecurity",
+ input:"User-permission incidence; SoD constraints",
+ output:"Violating assignment set ids",
+ companies:["SAP","Oracle","Workday","SailPoint"]},
+{idea:"Malware triage",industry:"Cybersecurity",
+ input:"Static features and labels",
+ output:"Malicious sample ids (high confidence)",
+ companies:["CrowdStrike","SentinelOne","Microsoft Defender"]},
+{idea:"Critical patch selection",industry:"Cybersecurity",
+ input:"CVE dependency graph; exploitability flags",
+ output:"Minimal patch set covering exploitable vulns",
+ companies:["Red Hat","Canonical","Microsoft","Atlassian"]},
+{idea:"Beacon timing detector",industry:"Cybersecurity",
+ input:"Inter-packet intervals",
+ output:"Sequences near periodicity tolerance",
+ companies:["Cloudflare","Akamai","Zscaler","Netskope"]},
+{idea:"Lateral movement path",industry:"Cybersecurity",
+ input:"AD/identity graph with trust weights",
+ output:"Risky paths to crown jewel ≥ τ",
+ companies:["Microsoft Entra","Semperis","Tenable"]},
+{idea:"Minimal key rotation set",industry:"Cybersecurity",
+ input:"Services–keys graph",
+ output:"Key set whose rotation breaks all risky paths",
+ companies:["HashiCorp","AWS KMS","Google Cloud KMS","Azure Key Vault"]},
+
+/* ===== Healthcare (31–40) ===== */
+{idea:"Triage priority selector",industry:"Healthcare",
+ input:"Patient risk scores; bed limit K; resource caps",
+ output:"K-subset maximizing expected outcome under caps",
+ companies:["Kaiser Permanente","Mayo Clinic","NHS Trusts"]},
+{idea:"Drug–drug interaction filter",industry:"Healthcare",
+ input:"Medication list; DDI matrix; efficacy",
+ output:"Regimens with no severe DDI and max efficacy",
+ companies:["Epic","Cerner","Flatiron Health"]},
+{idea:"Early sepsis window",industry:"Healthcare",
+ input:"Vitals sequences; threshold rules",
+ output:"Window ids matching early-warning rules",
+ companies:["Philips","GE Healthcare","Cleveland Clinic"]},
+{idea:"Clinic schedule feasibility",industry:"Healthcare",
+ input:"Slots, clinicians, constraints",
+ output:"Clash-free schedule (soft bias throughput)",
+ companies:["OneMedical","Carbon Health","Teladoc"]},
+{idea:"Imaging queue optimizer",industry:"Healthcare",
+ input:"Case priorities & durations; SLA",
+ output:"Ordering meeting SLA and minimal wait",
+ companies:["Radiology Partners","Siemens Healthineers"]},
+{idea:"Wearable anomaly detection",industry:"Healthcare",
+ input:"HR/HRV streams",
+ output:"Segments with arrhythmia signatures",
+ companies:["Apple","Fitbit (Google)","WHOOP","Garmin"]},
+{idea:"Telehealth routing",industry:"Healthcare",
+ input:"Patient language/time constraints; clinician pool",
+ output:"Matches fulfilling constraints with max satisfaction",
+ companies:["Amwell","Doxy.me","Teladoc"]},
+{idea:"Trial arm balance",industry:"Healthcare",
+ input:"Candidate covariates; balance tolerances",
+ output:"Assignments balancing covariates",
+ companies:["IQVIA","Medidata","AstraZeneca"]},
+{idea:"ICU supply subset",industry:"Healthcare",
+ input:"Items with utility & cost; budget B",
+ output:"Subset cost ≤ B & utility max",
+ companies:["Medtronic","Baxter","3M Health Care"]},
+{idea:"Care pathway anomaly",industry:"Healthcare",
+ input:"Patient event sequences; guideline grammar",
+ output:"Ids deviating from guideline",
+ companies:["Epic","Optum","Cerner","Change Healthcare"]},
+
+/* ===== Energy (41–50) ===== */
+{idea:"Unit commitment (toy)",industry:"Energy",
+ input:"3–5 generators; min/max; cost; demand",
+ output:"On/off set meeting demand with min cost",
+ companies:["Siemens Energy","GE Vernova","ABB","ISO/RTOs"]},
+{idea:"Curtailment minimizer",industry:"Energy",
+ input:"Renewable forecasts; storage capacity",
+ output:"Dispatch profiles limiting curtailment",
+ companies:["Ørsted","NextEra","Vestas","Enel"]},
+{idea:"Battery swap scheduling",industry:"Energy",
+ input:"Time slots; station capacity; arrivals",
+ output:"Schedules with no overload & minimal wait",
+ companies:["NIO","Gogoro","Sun Mobility"]},
+{idea:"Microgrid islanding plan",industry:"Energy",
+ input:"Loads & DERs; N-1 criterion",
+ output:"DER subsets powering critical loads",
+ companies:["Schneider Electric","Eaton","Hitachi Energy"]},
+{idea:"Line congestion reroute",industry:"Energy",
+ input:"Network with limits; candidate switches",
+ output:"Topologies with flows ≤ limits & min losses",
+ companies:["National Grid","PG&E","Elia","RTE"]},
+{idea:"EV charging assignment",industry:"Energy",
+ input:"Cars, chargers, time windows",
+ output:"Assignments meeting windows; minimal peak",
+ companies:["ChargePoint","Tesla","BP Pulse","Shell Recharge"]},
+{idea:"Peak shaving strategy",industry:"Energy",
+ input:"Load curve; battery size",
+ output:"Dispatch that reduces peak below τ",
+ companies:["Enel X","AutoGrid","Voltus"]},
+{idea:"Outage crew routing",industry:"Energy",
+ input:"Fault locations; crews; times",
+ output:"Routes restoring max customers within SLA",
+ companies:["Duke Energy","Exelon","Dominion","Iberdrola"]},
+{idea:"PV fault detector",industry:"Energy",
+ input:"String IV data; anomaly rules",
+ output:"Faulty string ids",
+ companies:["First Solar","Enphase","SMA","SolarEdge"]},
+{idea:"Demand response selector",industry:"Energy",
+ input:"Customer offer curves; target reduction",
+ output:"Subset achieving target at minimum payout",
+ companies:["OhmConnect","Uplight","Oracle Utilities"]},
+
+/* ===== Manufacturing (51–60) ===== */
+{idea:"Job-shop schedule (tiny)",industry:"Manufacturing",
+ input:"Jobs × machines; processing times; precedence",
+ output:"Schedules meeting precedence & minimizing makespan",
+ companies:["Bosch","Siemens","Toyota","Foxconn"]},
+{idea:"Quality outlier detector",industry:"Manufacturing",
+ input:"SPC measurement streams; control limits",
+ output:"Batch/part ids beyond limits",
+ companies:["GE Aerospace","Intel","TSMC","ASML (customers)"]},
+{idea:"Tool change policy",industry:"Manufacturing",
+ input:"Wear curves; downtime & scrap costs",
+ output:"Change intervals minimizing total cost",
+ companies:["Boeing","Airbus","Caterpillar","Komatsu"]},
+{idea:"Kanban card sizing",industry:"Manufacturing",
+ input:"Demand variance; WIP cap",
+ output:"Card counts meeting service ≥ τ with min WIP",
+ companies:["Toyota","Ford","GM","Tesla"]},
+{idea:"Assembly subset pick",industry:"Manufacturing",
+ input:"Component availability; margin impact",
+ output:"Subsets achieving min buildable units & max margin",
+ companies:["Apple","Samsung","Dell","Lenovo"]},
+{idea:"Line balancing",industry:"Manufacturing",
+ input:"Tasks; times; precedence; station limits",
+ output:"Allocations within takt time",
+ companies:["Procter & Gamble","Unilever","Nestlé"]},
+{idea:"Predictive maintenance",industry:"Manufacturing",
+ input:"Sensor features; failure labels",
+ output:"Windows predicting failure",
+ companies:["Siemens","Honeywell","ABB","Rockwell"]},
+{idea:"Scrap root-cause triage",industry:"Manufacturing",
+ input:"Features → defect labels",
+ output:"Feature subsets with best separation",
+ companies:["Michelin","Bridgestone","3M"]},
+{idea:"Supplier risk combiner",industry:"Manufacturing",
+ input:"Risk per supplier; costs",
+ output:"Sets with composite risk ≤ τ & min cost",
+ companies:["BMW","VW Group","Stellantis"]},
+{idea:"Batch size optimizer",industry:"Manufacturing",
+ input:"Setup & holding costs; capacity",
+ output:"Batch sizes minimizing total cost",
+ companies:["P&G","Kimberly-Clark","Colgate-Palmolive"]},
+
+/* ===== Telecom & Networks (61–70) ===== */
+{idea:"QoS route",industry:"Telecom",
+ input:"Graph with latency & loss; threshold τ",
+ output:"Path ids with latency ≤ τ and max reliability",
+ companies:["AT&T","Verizon","BT","Deutsche Telekom"]},
+{idea:"Frequency assignment (toy)",industry:"Telecom",
+ input:"Cells; interference graph; small palette",
+ output:"Colorings with no conflicts & min spectrum",
+ companies:["Ericsson","Nokia","Huawei","Samsung Networks"]},
+{idea:"CDN placement",industry:"Telecom",
+ input:"PoPs, demand, capacity",
+ output:"PoP subsets minimizing latency under capacity",
+ companies:["Cloudflare","Akamai","Fastly","AWS CloudFront"]},
+{idea:"SLA breach window",industry:"Telecom",
+ input:"Latency time series; SLA threshold",
+ output:"Windows exceeding SLA",
+ companies:["Cisco ThousandEyes","Kentik","Datadog"]},
+{idea:"DDoS burst detector",industry:"Telecom",
+ input:"Packets-per-second per subnet",
+ output:"Subnet ids with z ≥ τ",
+ companies:["Cloudflare","Netscout Arbor","Radware"]},
+{idea:"Minimal monitoring set",industry:"Telecom",
+ input:"Graph; candidate monitors",
+ output:"Dominating/covering sets",
+ companies:["Juniper","Arista","Nokia"]},
+{idea:"Handover policy",industry:"Telecom",
+ input:"RSSI traces; thresholds",
+ output:"Policies minimizing ping-pong & drop",
+ companies:["Vodafone","T-Mobile","Orange"]},
+{idea:"Energy-cap routing",industry:"Telecom",
+ input:"Edge energy costs; delay",
+ output:"Paths with energy ≤ B & min delay",
+ companies:["Starlink","OneWeb","Telco backbones"]},
+{idea:"Fault localization",industry:"Telecom",
+ input:"Alarm correlations; topology",
+ output:"Minimal cause sets explaining alarms",
+ companies:["Nokia NPO","Ericsson ENM","ServiceNow"]},
+{idea:"Slice admission",industry:"Telecom",
+ input:"Requested slices; resource caps; revenues",
+ output:"Subset maximizing revenue under caps",
+ companies:["Rakuten Mobile","Dish Wireless","Deutsche Telekom"]},
+
+/* ===== Retail & Marketing (71–80) ===== */
+{idea:"Assortment optimization",industry:"Retail",
+ input:"Margins; cannibalization pairs; shelf width",
+ output:"Subsets with min cannibalization & max margin",
+ companies:["Walmart","Target","Carrefour","Tesco"]},
+{idea:"Promo calendar selection",industry:"Retail",
+ input:"SKUs; weekly budget; uplift model",
+ output:"Calendars within budget & max uplift",
+ companies:["PepsiCo","Coca-Cola","Unilever","Mondelez"]},
+{idea:"Pricing buckets",industry:"Retail",
+ input:"Price points; elasticity",
+ output:"Price candidates exceeding revenue threshold",
+ companies:["Amazon","Shopify merchants","Instacart retailers"]},
+{idea:"Churn saver list",industry:"Retail",
+ input:"Churn risk & save cost; choose K",
+ output:"K customers maximizing saved revenue",
+ companies:["Netflix","Spotify","Disney+","Comcast"]},
+{idea:"Store location subset",industry:"Retail",
+ input:"Candidate sites; coverage & cost",
+ output:"Subsets covering demand with min cost",
+ companies:["Starbucks","McDonald’s","Domino’s","7-Eleven"]},
+{idea:"Review anomaly finder",industry:"Retail",
+ input:"Scores & timing; trust weights",
+ output:"Windows with suspicious bursts",
+ companies:["Yelp","Google Maps","Tripadvisor","Amazon"]},
+{idea:"Basket rule mining (toy)",industry:"Retail",
+ input:"Transaction matrix; support τ",
+ output:"Item pairs with support ≥ τ",
+ companies:["Kroger","Walmart","Carrefour","Tesco"]},
+{idea:"Shelf plan (tiny)",industry:"Retail",
+ input:"Facings; velocity; shelf width",
+ output:"Allocations maximizing sales within width",
+ companies:["Walgreens","CVS","Boots","Rite Aid"]},
+{idea:"Email subject tester",industry:"Retail",
+ input:"Variants; features; ctr/open threshold",
+ output:"Subjects meeting open-rate ≥ τ",
+ companies:["Mailchimp","Klaviyo","Salesforce MC"]},
+{idea:"Delivery slot optimizer",industry:"Retail",
+ input:"Slots; capacity; promised windows",
+ output:"Allocations meeting promises & min route cost",
+ companies:["Ocado","Amazon Fresh","BigBasket"]},
+
+/* ===== Smart Cities & IoT (81–90) ===== */
+{idea:"Traffic signal timing (toy)",industry:"Smart Cities",
+ input:"Phases; queue estimates; cycle length",
+ output:"Timing plan reducing total delay",
+ companies:["Siemens Mobility","PTV","Iteris","Kapsch"]},
+{idea:"Parking allocation",industry:"Smart Cities",
+ input:"Blocks; demand; pricing limits",
+ output:"Allocations meeting occupancy bands & max revenue",
+ companies:["ParkMobile","Passport","Flowbird"]},
+{idea:"Air-quality hot-spots",industry:"Smart Cities",
+ input:"Grid sensors; AQI thresholds; persistence",
+ output:"Cells exceeding threshold consistently",
+ companies:["BreezoMeter (Google)","IQAir","Vaisala"]},
+{idea:"Street-light schedule",industry:"Smart Cities",
+ input:"Ambient light; usage; energy cap",
+ output:"Schedules meeting safety & energy cap",
+ companies:["Signify (Philips)","Telensa","Cisco Kinetic"]},
+{idea:"Water leak window",industry:"Smart Cities",
+ input:"Flow readings; baseline model",
+ output:"Intervals deviating by τ with persistence",
+ companies:["Suez","Xylem","Badger Meter"]},
+{idea:"Waste route planning",industry:"Smart Cities",
+ input:"Bin fill levels; truck capacity; time cap",
+ output:"Routes maximizing collected volume",
+ companies:["Rubicon","Veolia","Republic Services"]},
+{idea:"EV charger placement (city)",industry:"Smart Cities",
+ input:"Demand heatmap; grid constraints; budget",
+ output:"Site subsets maximizing coverage",
+ companies:["ChargePoint","Beam","Blink","ABB E-mobility"]},
+{idea:"Emergency vehicle path",industry:"Smart Cities",
+ input:"Road graph; dynamic blockages; SLA",
+ output:"Paths meeting response-time threshold",
+ companies:["Motorola Solutions","Hexagon","RapidSOS"]},
+{idea:"Noise ordinance detector",industry:"Smart Cities",
+ input:"Decibel streams; time threshold",
+ output:"Windows breaching limits for T secs",
+ companies:["Arup","SoundPLAN","City CTO offices"]},
+{idea:"Public bike rebalancing",industry:"Smart Cities",
+ input:"Station deficits; truck capacity",
+ output:"Moves minimizing unmet demand",
+ companies:["Lyft/CitiBike","Lime","Tier","Dott"]},
+
+/* ===== Climate & Environment (91–100) ===== */
+{idea:"Wildfire risk triage",industry:"Climate",
+ input:"Cell risk features; resource K",
+ output:"Top-K cells under resource cap",
+ companies:["CAL FIRE","USFS","NASA Earth Science","Descartes Labs"]},
+{idea:"Flood sensor placement",industry:"Climate",
+ input:"River network; coverage model",
+ output:"Sensor sets maximizing coverage with min sensors",
+ companies:["USGS","NOAA","Jacobs","AECOM"]},
+{idea:"Conservation parcel selection",industry:"Climate",
+ input:"Parcel biodiversity scores; budget",
+ output:"Subsets maximizing score under budget",
+ companies:["WWF","The Nature Conservancy","UNEP"]},
+{idea:"Air-pollution exceedance",industry:"Climate",
+ input:"Station readings; legal limits; days N",
+ output:"Stations exceeding limits more than N days",
+ companies:["EPA (US)","DEFRA (UK)","IQAir"]},
+{idea:"Wind siting",industry:"Climate",
+ input:"Candidate sites; wind potential; setbacks",
+ output:"Site subsets meeting setbacks & max energy",
+ companies:["Vestas","Siemens Gamesa","Ørsted"]},
+{idea:"Reforestation mix",industry:"Climate",
+ input:"Species growth & survival; diversity constraint",
+ output:"Mixes meeting diversity & maximizing carbon",
+ companies:["One Tree Planted","Terraformation","WRI"]},
+{idea:"Plastic leakage hotspots",industry:"Climate",
+ input:"River segments; waste inflow; population proximity",
+ output:"Segment ids above threshold near population",
+ companies:["The Ocean Cleanup","WWF","UNEP"]},
+{idea:"Urban heat island mitigation",industry:"Climate",
+ input:"Interventions per block; cost & effect",
+ output:"Subsets maximizing °C reduction under budget",
+ companies:["City sustainability offices","C40 Cities"]},
+{idea:"Marine protected area coverage",industry:"Climate",
+ input:"Reef polygons; biodiversity weights; area cap",
+ output:"MPA subsets covering most weight",
+ companies:["NOAA Sanctuaries","IUCN","Oceana"]},
+{idea:"Carbon project screening",industry:"Climate",
+ input:"Projects with MRV/risk/cost; tCO₂e/$",
+ output:"Projects meeting MRV with max tCO₂e per dollar",
+ companies:["Verra","Gold Standard","South Pole","Patch"]},
+];
+
+const grid = document.getElementById('grid');
+const q = document.getElementById('q');
+const sel = document.getElementById('industry');
+const countEl = document.getElementById('count');
+
+const industries = [...new Set(ideas.map(x=>x.industry))].sort();
+industries.forEach(i=>{
+  const o=document.createElement('option'); o.value=i; o.textContent=i; sel.appendChild(o);
+});
+
+function render(){
+  const term = q.value.toLowerCase().trim();
+  const filt = sel.value;
+  grid.innerHTML='';
+  const visible = ideas.filter(x=>{
+    const inIndustry = !filt || x.industry===filt;
+    const blob = (x.idea+' '+x.industry+' '+x.input+' '+x.output+' '+x.companies.join(' ')).toLowerCase();
+    const inSearch = !term || blob.includes(term);
+    return inIndustry && inSearch;
+  });
+  countEl.textContent = `(${visible.length} / ${ideas.length})`;
+  visible.forEach(x=>{
+    const card = document.createElement('div');
+    card.className='card';
+    card.innerHTML = `
+      <div class="idea">
+        <span class="badge">${x.industry}</span>
+        <div class="title">${x.idea}</div>
+      </div>
+      <div class="row"><div class="key">Input</div><div class="val">${x.input}</div></div>
+      <div class="row"><div class="key">Output</div><div class="val">${x.output}</div></div>
+      <div class="row"><div class="key">Companies</div>
+        <div class="val">
+          <div class="chips">${x.companies.map(c=>`<span class="chip">${c}</span>`).join('')}</div>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+q.addEventListener('input', render);
+sel.addEventListener('change', render);
+render();
+</script>
+</body>
+</html>
